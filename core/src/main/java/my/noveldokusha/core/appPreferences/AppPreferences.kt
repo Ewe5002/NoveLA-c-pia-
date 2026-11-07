@@ -614,6 +614,12 @@ class AppPreferences @Inject constructor(
         override var value by SharedPreference_Boolean(name, preferences, false)
     }
 
+    // Estado de ativação temporário do marcador; separado da preferência que
+    // controla se o botão deve aparecer no leitor.
+    val MANUAL_HIGHLIGHT_ACTIVE = object : Preference<Boolean>("MANUAL_HIGHLIGHT_ACTIVE") {
+        override var value by SharedPreference_Boolean(name, preferences, false)
+    }
+
     val MANUAL_HIGHLIGHT_COLOR = object : Preference<String>("MANUAL_HIGHLIGHT_COLOR") {
         override var value by SharedPreference_String(name, preferences, "#FFFFD54F")
     }
