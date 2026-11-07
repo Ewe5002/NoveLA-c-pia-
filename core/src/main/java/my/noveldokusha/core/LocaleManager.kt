@@ -17,7 +17,7 @@ object LocaleManager {
         val prefs = context.getSharedPreferences(
             context.packageName + "_preferences", Context.MODE_PRIVATE
         )
-        val code = prefs.getString("APP_LANGUAGE_CODE", "en") ?: "en"
+        val code = prefs.getString("APP_LANGUAGE_CODE", "pt") ?: "pt"
         val language = AppLanguageProvider.fromCode(code)
             ?: AppLanguageProvider.supportedLanguages.first()
         return createLocaleContext(context, language)
