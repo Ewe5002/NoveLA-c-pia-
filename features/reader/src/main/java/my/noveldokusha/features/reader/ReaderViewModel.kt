@@ -176,6 +176,9 @@ internal class ReaderViewModel @Inject constructor(
     fun startManualHighlightAt(itemIndex: Int) =
         readerSession.startManualHighlight(itemIndex = itemIndex)
 
+    fun toggleManualHighlightAt(itemIndex: Int) =
+        readerSession.toggleManualHighlight(itemIndex = itemIndex)
+
     fun stopManualHighlight() =
         readerSession.stopManualHighlight()
 
