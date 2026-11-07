@@ -287,7 +287,7 @@ class AppPreferences @Inject constructor(
         )
 
     val APP_LANGUAGE_CODE = object : Preference<String>("APP_LANGUAGE_CODE") {
-        override var value by SharedPreference_String(name, preferences, "en")
+        override var value by SharedPreference_String(name, preferences, "pt")
     }
 
     val IS_FIRST_LAUNCH_DONE = object : Preference<Boolean>("IS_FIRST_LAUNCH_DONE") {
