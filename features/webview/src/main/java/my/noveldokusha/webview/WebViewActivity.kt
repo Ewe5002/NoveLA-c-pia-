@@ -255,12 +255,6 @@ class WebViewActivity : ComponentActivity() {
                     onCopyUrlClicked = { copyToClipboard(webView.url ?: currentUrl) },
                     translationEnabled = translationEnabled,
                     isTranslated = isTranslated,
-                    onCustomCodeSave = { javascript, css ->
-                        customCodePrefs.edit().putString("javascript", javascript).putString("css", css).apply()
-                        applyCustomWebCode()
-                    },
-                    customJavaScript = customCodePrefs.getString("javascript", "") ?: "",
-                    customCss = customCodePrefs.getString("css", "") ?: "",
                     onTranslateClicked = {
                         if (isTranslated) {
                             // Закрываем гейт моста до restore(): отказ летящего батча
@@ -299,8 +293,10 @@ class WebViewActivity : ComponentActivity() {
 
     private fun applyCustomWebCode() {
         if (!::webView.isInitialized || isBypassMode || bookUrl.isBlank()) return
-        val javascript = customCodePrefs.getString("javascript", "").orEmpty()
-        val css = customCodePrefs.getString("css", "").orEmpty()
+        val javascriptEnabled = customCodePrefs.getBoolean("javascript_enabled", true)
+        val cssEnabled = customCodePrefs.getBoolean("css_enabled", true)
+        val javascript = if (javascriptEnabled) customCodePrefs.getString("javascript", "").orEmpty() else ""
+        val css = if (cssEnabled) customCodePrefs.getString("css", "").orEmpty() else ""
         // Only run custom code on a page that appears to contain chapter text.
         val chapterCheck = """
             (function() {
