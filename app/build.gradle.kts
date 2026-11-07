@@ -47,8 +47,8 @@ android {
         applicationId = "my.novela"
         versionCode = 39
         versionName = "1.6.1"
-        base.archivesName.set("NOvel_LD_v$versionName")
-        manifestPlaceholders["appLabel"] = "NOvel LD"
+        base.archivesName.set("LNovel_v$versionName")
+        manifestPlaceholders["appLabel"] = "LNovel"
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }
@@ -73,7 +73,7 @@ android {
         named("debug") {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
-            manifestPlaceholders["appLabel"] = "NOvel LD Debug"
+            manifestPlaceholders["appLabel"] = "LNovel Debug"
         }
 
         named("release") {
