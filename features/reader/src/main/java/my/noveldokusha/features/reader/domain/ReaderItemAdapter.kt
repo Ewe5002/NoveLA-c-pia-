@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
@@ -85,6 +86,8 @@ internal class ReaderItemAdapter(
     private val currentTextColor: () -> String = { "" },
     private val currentSpokenWordRange: () -> IntRange? = { null },
     private val currentManualHighlight: () -> HighlightPosition? = { null },
+    private val currentManualHighlightColor: () -> String = { "#FFFFD54F" },
+    private val currentManualHighlightOpacity: () -> Float = { 0.45f },
 ) : ArrayAdapter<ReaderItem>(ctx, 0, list) {
     private val appFileResolver = AppFileResolver(ctx)
     override fun getCount() = super.getCount() + 2
@@ -539,7 +542,22 @@ internal class ReaderItemAdapter(
             item.chapterIndex == manualHighlight.chapterIndex &&
             item.chapterItemPosition == manualHighlight.chapterItemPosition
         ) {
-            return currentReadingAloudDrawable
+            val color = try {
+                android.graphics.Color.parseColor(currentManualHighlightColor())
+            } catch (_: Exception) {
+                android.graphics.Color.YELLOW
+            }
+            val opacity = currentManualHighlightOpacity().coerceIn(0.05f, 1f)
+            return GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 12f
+                setColor(android.graphics.Color.argb(
+                    (android.graphics.Color.alpha(color) * opacity).toInt(),
+                    android.graphics.Color.red(color),
+                    android.graphics.Color.green(color),
+                    android.graphics.Color.blue(color),
+                ))
+            }
         }
 
         return null
