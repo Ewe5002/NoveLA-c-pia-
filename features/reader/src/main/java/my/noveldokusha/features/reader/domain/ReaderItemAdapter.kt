@@ -86,7 +86,7 @@ internal class ReaderItemAdapter(
     private val currentTextColor: () -> String = { "" },
     private val currentSpokenWordRange: () -> IntRange? = { null },
     private val currentManualHighlight: () -> HighlightPosition? = { null },
-    private val currentManualHighlightColor: () -> String = { "#FFFFD54F" },
+    private val currentManualHighlightColor: () -> String = { "#FF737373" },
     private val currentManualHighlightOpacity: () -> Float = { 0.45f },
     private val currentMarkerActive: () -> Boolean = { false },
     private val onMarkerParagraphClick: (ReaderItem.Body) -> Unit = {},
