@@ -331,8 +331,8 @@ class WebViewActivity : ComponentActivity() {
                     var root = document.querySelector('[data-lnovel-chapter="true"]');
                     if (!root) return;
                     var prefix = '#' + (root.id || '__lnovel_chapter_root__');
-                    var scoped = \${JSONObject.quote(css)}.replace(
-                        /(^|})\\s*([^@{}][^{}]*)\\{/g,
+                    var scoped = ${JSONObject.quote(css)}.replace(
+                        /(^|})\s*([^@{}][^{}]*)\{/g,
                         function(_, boundary, selectors) {
                             return boundary + selectors.split(',').map(function(s) {
                                 return prefix + ' ' + s.trim();
@@ -355,7 +355,7 @@ class WebViewActivity : ComponentActivity() {
             if (javascript.isNotBlank()) {
                 webView.evaluateJavascript(
                     "(function(){var chapter=document.querySelector('[data-lnovel-chapter=\"true\"]');if(!chapter)return;try{" +
-                        javascript + ";\\n}catch(e){console.error('LNovel chapter JS:',e)}})();",
+                        javascript + ";\n}catch(e){console.error('LNovel chapter JS:',e)}})();",
                     null
                 )
             }
