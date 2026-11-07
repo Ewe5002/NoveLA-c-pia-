@@ -306,7 +306,7 @@ class WebViewActivity : ComponentActivity() {
         } else "(function(){var s=document.getElementById('__noveld_custom_css__');if(s)s.remove();})();"
         webView.evaluateJavascript(cssScript, null)
         if (javascript.isNotBlank()) {
-            webView.evaluateJavascript("(function(){try{" + javascript + "\\n}catch(e){console.error('NOvel LD custom JS:',e)}})();", null)
+            webView.evaluateJavascript("(function(){try{" + javascript + ";\n}catch(e){console.error('NOvel LD custom JS:',e)}})();", null)
         }
     }
 
