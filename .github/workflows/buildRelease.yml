@@ -33,17 +33,27 @@ jobs:
         uses: gradle/actions/setup-gradle@v6.3.0
 
       - name: Setup APK signing
+        if: inputs.build_type == 'release'
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          echo -n ${{ secrets.SIGNING_KEY }} | base64 -d > app/storeFile.jks
-          echo storeFile=storeFile.jks          > custom.properties
-          echo storePassword=${{ secrets.KEY_STORE_PASSWORD }} >> custom.properties
-          echo keyAlias=${{ secrets.ALIAS }}    >> custom.properties
-          echo keyPassword=${{ secrets.KEY_PASSWORD }} >> custom.properties
-
+          echo -n "$SIGNING_KEY" | base64 -d > app/storeFile.jks
+          echo storeFile=storeFile.jks > custom.properties
+          echo storePassword=$KEY_STORE_PASSWORD >> custom.properties
+          echo keyAlias=$KEY_ALIAS >> custom.properties
+          echo keyPassword=$KEY_PASSWORD >> custom.properties
       - name: Remove local Java home from gradle.properties
         run: sed -i '/org\.gradle\.java\.home/d' gradle.properties
 
+      - name: Build debug APK (test)
+        if: inputs.build_type == 'test'
+        run: ./gradlew assembleDebug
+
       - name: Build release APK
+        if: inputs.build_type == 'release'
         run: ./gradlew assembleRelease -PlocalPropertiesFilePath=custom.properties
 
       - name: Set app version
@@ -58,12 +68,15 @@ jobs:
           SHORT_SHA: ${{ env.SHORT_SHA }}
         run: |
           mkdir -p release-artifacts
-          find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' \
-            -exec cp {} release-artifacts/ \;
+          if [ "${{ inputs.build_type }}" = "test" ]; then
+            find app/build/outputs/apk/debug -maxdepth 1 -name '*.apk' -exec cp {} release-artifacts/ \;
+          else
+            find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' -exec cp {} release-artifacts/ \;
+          fi
           # R8 mapping — нужен для деобфускации стекрейсов крашей.
           # Имя уникально на коммит, чтобы сборки не затирали mapping друг друга.
           # Пакуем в gzip — 132 МБ текста сжимаются ~10x
-          if [ -f app/build/outputs/mapping/release/mapping.txt ]; then
+          if [ "${{ inputs.build_type }}" = "release" ] && [ -f app/build/outputs/mapping/release/mapping.txt ]; then
             gzip -9 -c app/build/outputs/mapping/release/mapping.txt > "release-artifacts/mapping-${SHORT_SHA}.txt.gz"
           fi
           ls -lah release-artifacts
