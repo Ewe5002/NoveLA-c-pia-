@@ -614,6 +614,14 @@ class AppPreferences @Inject constructor(
         override var value by SharedPreference_Boolean(name, preferences, false)
     }
 
+    val MANUAL_HIGHLIGHT_COLOR = object : Preference<String>("MANUAL_HIGHLIGHT_COLOR") {
+        override var value by SharedPreference_String(name, preferences, "#FFFFD54F")
+    }
+
+    val MANUAL_HIGHLIGHT_OPACITY = object : Preference<Float>("MANUAL_HIGHLIGHT_OPACITY") {
+        override var value by SharedPreference_Float(name, preferences, 0.45f)
+    }
+
     // Позиция плавающей кнопки ручной подсветки (px), -1 — стартовая позиция по центру снизу
     val MANUAL_HIGHLIGHT_POS_X = object : Preference<Float>("MANUAL_HIGHLIGHT_POS_X") {
         override var value by SharedPreference_Float(name, preferences, -1f)
