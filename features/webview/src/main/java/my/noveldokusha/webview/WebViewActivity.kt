@@ -26,6 +26,7 @@ import my.noveldokusha.network.interceptors.PluginUARegistry
 import my.noveldokusha.network.interceptors.resolveUserAgent
 import my.noveldokusha.text_translator.domain.TranslationManager
 import org.json.JSONTokener
+import org.json.JSONObject
 import timber.log.Timber
 import java.util.Locale
 import javax.inject.Inject
@@ -44,6 +45,7 @@ class WebViewActivity : ComponentActivity() {
     @Inject lateinit var translationManager: TranslationManager
     @Inject lateinit var translationSettingsResolver: TranslationSettingsResolver
 
+    private val customCodePrefs by lazy { getSharedPreferences("noveld_custom_web_code", MODE_PRIVATE) }
     private var currentTargetUrl: String = ""
     private var bookUrl: String = ""
     private var isBypassMode: Boolean = false
@@ -137,6 +139,7 @@ class WebViewActivity : ComponentActivity() {
                         isTranslated = false
                         translateBridge.setActive(false)
                     }
+                    if (url != null && (url.startsWith("http://") || url.startsWith("https://"))) applyCustomWebCode()
                     // ponytail: auto-close on cf_clearance in bypass mode — server-set cookies
                     // are already in CookieManager by onPageFinished; Turnstile JS cookies
                     // are caught by the polling fallback below.
@@ -252,6 +255,12 @@ class WebViewActivity : ComponentActivity() {
                     onCopyUrlClicked = { copyToClipboard(webView.url ?: currentUrl) },
                     translationEnabled = translationEnabled,
                     isTranslated = isTranslated,
+                    onCustomCodeSave = { javascript, css ->
+                        customCodePrefs.edit().putString("javascript", javascript).putString("css", css).apply()
+                        applyCustomWebCode()
+                    },
+                    customJavaScript = customCodePrefs.getString("javascript", "") ?: "",
+                    customCss = customCodePrefs.getString("css", "") ?: "",
                     onTranslateClicked = {
                         if (isTranslated) {
                             // Закрываем гейт моста до restore(): отказ летящего батча
@@ -286,6 +295,19 @@ class WebViewActivity : ComponentActivity() {
         )
         webView.addJavascriptInterface(translateBridge, "NovelaTranslate")
         webView.loadUrl(currentTargetUrl)
+    }
+
+    private fun applyCustomWebCode() {
+        if (!::webView.isInitialized) return
+        val javascript = customCodePrefs.getString("javascript", "").orEmpty()
+        val css = customCodePrefs.getString("css", "").orEmpty()
+        val cssScript = if (css.isNotBlank()) {
+            "(function(){var id='__noveld_custom_css__';var s=document.getElementById(id);if(!s){s=document.createElement('style');s.id=id;(document.head||document.documentElement).appendChild(s);}s.textContent=" + JSONObject.quote(css) + ";})();"
+        } else "(function(){var s=document.getElementById('__noveld_custom_css__');if(s)s.remove();})();"
+        webView.evaluateJavascript(cssScript, null)
+        if (javascript.isNotBlank()) {
+            webView.evaluateJavascript("(function(){try{" + javascript + "\\n}catch(e){console.error('NOvel LD custom JS:',e)}})();", null)
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
