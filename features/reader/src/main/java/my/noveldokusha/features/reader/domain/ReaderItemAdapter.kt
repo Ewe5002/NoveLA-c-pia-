@@ -275,7 +275,7 @@ internal class ReaderItemAdapter(
             bind.bodyTranslated.text = displayText
             bind.bodyTranslated.textSize = currentFontSize()
             applyBodyFormatting(bind.bodyTranslated)
-            bind.bodyTranslated.updateTextSelectability()
+            bind.bodyTranslated.updateTextSelectability(paragraphClick)
             bind.bodyTranslated.setLineSpacing(0f, currentLineHeight())
             bind.bodyTranslated.letterSpacing = currentLetterSpacing()
             applyTextColor(bind.bodyTranslated, currentTextColor())
