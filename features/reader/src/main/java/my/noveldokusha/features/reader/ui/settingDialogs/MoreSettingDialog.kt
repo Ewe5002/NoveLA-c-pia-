@@ -67,32 +67,6 @@ internal fun MoreSettingDialog(
         val scrollState = rememberScrollState()
         val isScrolling by remember { derivedStateOf { scrollState.isScrollInProgress } }
         Column(modifier = Modifier.padding(vertical = 16.dp).verticalScroll(scrollState)) {
-        // Manual highlight
-        SlimListItem(
-            modifier = Modifier
-                .clickable(enabled = !isScrolling) { onManualHighlightEnabledChange(!manualHighlightEnabled) },
-            headlineContent = {
-                Text(text = stringResource(id = R.string.manual_highlight))
-            },
-            leadingContent = {
-                Icon(
-                    Icons.Outlined.Highlight,
-                    null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
-            trailingContent = {
-                Switch(
-                    checked = manualHighlightEnabled,
-                    onCheckedChange = onManualHighlightEnabledChange,
-                    enabled = !isScrolling,
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = colorAccent(),
-                        checkedTrackColor = colorAccent().copy(alpha = 0.4f),
-                    )
-                )
-            }
-        )
         // TTS Highlight
         SlimListItem(
             modifier = Modifier
