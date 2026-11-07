@@ -674,7 +674,6 @@ internal fun ReaderScreen(
         if (manualHighlight != null && manualHighlightEnabled) {
             ManualMarkerV10Control(
                 active = markerActive,
-                highlighted = manualHighlight.highlightedItem.value != null,
                 color = appPreferences.MANUAL_HIGHLIGHT_COLOR.value,
                 opacity = appPreferences.MANUAL_HIGHLIGHT_OPACITY.value,
                 onToggle = { onMarkerActiveChange(!markerActive) },
@@ -929,7 +928,6 @@ private class PreviewDataProvider : PreviewParameterProvider<PreviewDataProvider
 @Composable
 private fun ManualMarkerV10Control(
     active: Boolean,
-    highlighted: Boolean,
     color: String,
     opacity: Float,
     onToggle: () -> Unit,
@@ -1074,6 +1072,7 @@ private fun ManualMarkerV10Control(
                     }
                     Button(
                         onClick = {
+                            if (!active) onToggle()
                             onStartManual()
                             manualMode = true
                             showPalette = false
