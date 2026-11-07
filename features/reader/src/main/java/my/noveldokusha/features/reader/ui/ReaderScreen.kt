@@ -28,8 +28,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.ui.input.pointer.pointerInput
+import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -966,11 +969,14 @@ private fun ManualMarkerV10Control(
                 .clip(RoundedCornerShape(14.dp))
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                 .pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = { onToggle() },
-                        onLongPress = { showPalette = true },
-                        longPressTimeoutMillis = 1500L,
-                    )
+                    awaitEachGesture {
+                        awaitFirstDown(requireUnconsumed = false)
+                        val longPressReached = withTimeoutOrNull(1500L) {
+                            waitForUpOrCancellation()
+                            false
+                        } ?: true
+                        if (longPressReached) showPalette = true else onToggle()
+                    }
                 },
             contentAlignment = Alignment.Center,
         ) {
