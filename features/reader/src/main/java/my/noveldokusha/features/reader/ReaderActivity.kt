@@ -689,9 +689,8 @@ class ReaderActivity : BaseActivity() {
                     onManualHighlightEnabledChange = {
                         appPreferences.MANUAL_HIGHLIGHT_ENABLED.value = it
                         if (!it) {
+                            // Ocultar o botão não apaga o último parágrafo marcado.
                             appPreferences.MANUAL_HIGHLIGHT_ACTIVE.value = false
-                            viewModel.stopManualHighlight()
-                            viewAdapter.listView.notifyDataSetChanged()
                         }
                     },
                     onMarkerActiveChange = {
