@@ -86,8 +86,10 @@ internal class ReaderItemAdapter(
     private val currentTextColor: () -> String = { "" },
     private val currentSpokenWordRange: () -> IntRange? = { null },
     private val currentManualHighlight: () -> HighlightPosition? = { null },
-    private val currentManualHighlightColor: () -> String = { "#FFFFD54F" },
+    private val currentManualHighlightColor: () -> String = { "#FF737373" },
     private val currentManualHighlightOpacity: () -> Float = { 0.45f },
+    private val currentMarkerActive: () -> Boolean = { false },
+    private val onMarkerParagraphClick: (ReaderItem.Body) -> Unit = {},
 ) : ArrayAdapter<ReaderItem>(ctx, 0, list) {
     private val appFileResolver = AppFileResolver(ctx)
     override fun getCount() = super.getCount() + 2
@@ -181,6 +183,9 @@ internal class ReaderItemAdapter(
         }
 
         val parallelEnabled = currentParallelEnabled() && item.textTranslated != null
+        val paragraphClick: () -> Unit = {
+            if (currentMarkerActive()) onMarkerParagraphClick(item) else onClick()
+        }
 
         val isTtsActiveItem =
                 currentSpeakerActiveItem().itemPos.chapterIndex == item.chapterIndex &&
@@ -247,7 +252,7 @@ internal class ReaderItemAdapter(
             bind.bodyTranslated.text = displayPrimary
             bind.bodyTranslated.textSize = currentFontSize()
             applyBodyFormatting(bind.bodyTranslated)
-            bind.bodyTranslated.updateTextSelectability()
+            bind.bodyTranslated.updateTextSelectability(paragraphClick)
             bind.bodyTranslated.setLineSpacing(0f, currentLineHeight())
             bind.bodyTranslated.letterSpacing = currentLetterSpacing()
             applyTextColor(bind.bodyTranslated, currentTextColor())
@@ -255,7 +260,7 @@ internal class ReaderItemAdapter(
             bind.bodyOriginal.text = secondaryText
             bind.bodyOriginal.textSize = currentFontSize() * 0.85f
             applyBodyFormatting(bind.bodyOriginal)
-            bind.bodyOriginal.updateTextSelectability()
+            bind.bodyOriginal.updateTextSelectability(paragraphClick)
             bind.bodyOriginal.setLineSpacing(0f, currentLineHeight())
             bind.bodyOriginal.letterSpacing = currentLetterSpacing()
             applyTextColor(bind.bodyOriginal, currentTextColor())
@@ -444,7 +449,7 @@ internal class ReaderItemAdapter(
         AppCompatResources.getDrawable(context, R.drawable.translucent_current_reading_loading_text_background)
     }
 
-    private fun TextView.updateTextSelectability() {
+    private fun TextView.updateTextSelectability(clickAction: () -> Unit = { onClick() }) {
         val selectableText = currentTextSelectability()
         setTextIsSelectable(selectableText)
         if (selectableText) {
@@ -476,10 +481,10 @@ internal class ReaderItemAdapter(
                     override fun onDestroyActionMode(mode: android.view.ActionMode) {}
                 }
             }
-            setTextSelectionAwareClick { onClick() }
+            setTextSelectionAwareClick { clickAction() }
         } else {
             customSelectionActionModeCallback = null
-            setOnClickListener { onClick() }
+            setOnClickListener { clickAction() }
             setOnTouchListener(null)
         }
     }

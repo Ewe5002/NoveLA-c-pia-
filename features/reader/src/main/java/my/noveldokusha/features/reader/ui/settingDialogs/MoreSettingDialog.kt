@@ -120,6 +120,35 @@ internal fun MoreSettingDialog(
                 }
             }
         }
+
+        // Esta chave controla somente a visibilidade do botão flutuante.
+        // A ativação da ferramenta acontece no próprio botão durante a leitura.
+        SlimListItem(
+            modifier = Modifier
+                .clickable(enabled = !isScrolling) {
+                    onManualHighlightEnabledChange(!manualHighlightEnabled)
+                },
+            headlineContent = { Text("Marca-texto") },
+            supportingContent = { Text("Mostrar o botão de marca-texto durante a leitura") },
+            leadingContent = {
+                Icon(
+                    Icons.Outlined.Highlight,
+                    null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            trailingContent = {
+                Switch(
+                    checked = manualHighlightEnabled,
+                    onCheckedChange = onManualHighlightEnabledChange,
+                    enabled = !isScrolling,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = colorAccent(),
+                        checkedTrackColor = colorAccent().copy(alpha = 0.4f),
+                    ),
+                )
+            },
+        )
         }
     }
 }

@@ -16,6 +16,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +41,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.border
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -163,6 +170,7 @@ internal fun ReaderScreen(
     onTtsHighlightEnabledChange: (Boolean) -> Unit,
     onTtsHighlightColorChange: (String) -> Unit,
     onManualHighlightEnabledChange: (Boolean) -> Unit = {},
+    onMarkerActiveChange: (Boolean) -> Unit = {},
     onTextDefaultsReset: () -> Unit = {},
     manualHighlight: ManualHighlightSettingData? = null,
     onManualHighlightStart: () -> Unit = {},
@@ -175,6 +183,8 @@ internal fun ReaderScreen(
     val selectedSetting by state.settings.selectedSetting
     val fullScreen by state.settings.fullScreen
     val manualHighlightEnabled by state.settings.manualHighlightEnabled
+    val markerActive by appPreferences.MANUAL_HIGHLIGHT_ACTIVE.flow()
+        .collectAsState(initial = appPreferences.MANUAL_HIGHLIGHT_ACTIVE.value)
     var readerAreaSize by remember { mutableStateOf(IntSize.Zero) }
 
     val context = LocalContext.current
@@ -661,26 +671,15 @@ internal fun ReaderScreen(
             onDispose { lifecycle.removeObserver(observer) }
         }
 
-        if (manualHighlight != null) {
+        if (manualHighlight != null && manualHighlightEnabled) {
             ManualMarkerV10Control(
-                highlighted = manualHighlight.highlightedItem.value != null,
+                active = markerActive,
                 color = appPreferences.MANUAL_HIGHLIGHT_COLOR.value,
                 opacity = appPreferences.MANUAL_HIGHLIGHT_OPACITY.value,
-                onToggle = {
-                    if (manualHighlight.highlightedItem.value != null) {
-                        manualHighlight.clear()
-                        onManualHighlightEnabledChange(false)
-                    } else {
-                        onManualHighlightStart()
-                        onManualHighlightEnabledChange(true)
-                    }
-                },
+                onToggle = { onMarkerActiveChange(!markerActive) },
+                onStartManual = onManualHighlightStart,
                 onNext = manualHighlight.next,
                 onPrevious = manualHighlight.previous,
-                onStop = {
-                    manualHighlight.clear()
-                    onManualHighlightEnabledChange(false)
-                },
                 onStyleChange = onManualHighlightStyleChange,
             )
         }
@@ -925,69 +924,103 @@ private class PreviewDataProvider : PreviewParameterProvider<PreviewDataProvider
 }
 
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ManualMarkerV10Control(
-    highlighted: Boolean,
+    active: Boolean,
     color: String,
     opacity: Float,
     onToggle: () -> Unit,
+    onStartManual: () -> Unit,
     onNext: () -> Unit,
     onPrevious: () -> Unit,
-    onStop: () -> Unit,
     onStyleChange: (String, Float) -> Unit,
 ) {
     var showPalette by remember { mutableStateOf(false) }
+    var manualMode by remember { mutableStateOf(false) }
     var selectedColor by remember(color) { mutableStateOf(color) }
     var selectedOpacity by remember(opacity) { mutableFloatStateOf(opacity) }
-    val colors = listOf("#FFFFEB3B", "#FFFF9800", "#FFF44336", "#FFE91E63", "#FF9C27B0", "#FF3F51B5", "#FF03A9F4", "#FF4CAF50", "#FF8BC34A", "#FFFFFFFF")
+
+    LaunchedEffect(active) {
+        if (!active) manualMode = false
+    }
+
+    val colors = listOf(
+        "#FFFFFFFF", "#FFF5F5F5", "#FFE8E0E0", "#FFBDB4B5", "#FF817879",
+        "#FF737373", "#FF536266", "#FF17292C", "#FF454545", "#FF303030",
+        "#FF101010", "#FFD9D9D9", "#FFA6A6A6", "#FF5F6B70", "#FF8C8C8C",
+        "#FFFFF9A8", "#FFF8D77C", "#FFFFFF66", "#FFF5DF79", "#FFF9D9E9",
+        "#FFD5A9D8", "#FFF17D91", "#FFED9BBD", "#FFD9F5EF", "#FFB5D477",
+        "#FF5BC5A5", "#FF168B70", "#FF075E53", "#FFC5DFF5", "#FFA6D4F5",
+        "#FF438DC5", "#FFD7C8F0", "#FFEF7B98", "#FFEF526D", "#FFE878A4",
+        "#FFD94479", "#FF92334E", "#FFD62E4D", "#FFA51F43", "#FFA73547",
+        "#FF773044", "#FFF6BD6D", "#FFC94A28", "#FF49372E", "#FF824239",
+        "#FF51403C", "#FF36A1C8", "#FF2785A8", "#FF244D5C", "#FF28648C",
+        "#FF557DB9", "#FF263C5C", "#FF4D80CA", "#FF9CAEE8", "#FF5359A8",
+        "#FF303B75", "#FF873B91", "#FF57335E", "#FF49313B", "#FF64334B",
+        "#FFEF9A9A", "#FFFFAB91", "#FFFFCC80", "#FFDCE775", "#FFA5D6A7",
+        "#FF80CBC4", "#FF80DEEA", "#FF90CAF9", "#FFB39DDB", "#FFF48FB1",
+    )
+
+    val parsedColor = runCatching {
+        Color(android.graphics.Color.parseColor(selectedColor))
+    }.getOrDefault(Color(0xFFFFEB3B))
+    val buttonColor = if (active) parsedColor.copy(alpha = selectedOpacity) else Color(0xFF737373).copy(alpha = 0.45f)
+    val luminance = 0.2126f * parsedColor.red + 0.7152f * parsedColor.green + 0.0722f * parsedColor.blue
+    val iconColor = if (luminance > 0.55f) Color(0xFF17292C) else Color.White
 
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.BottomEnd,
     ) {
-      Column(
-        modifier = Modifier.padding(end = 14.dp, bottom = 104.dp),
-        horizontalAlignment = Alignment.End,
-      ) {
-        if (highlighted) {
-            Row(
+        Column(
+            modifier = Modifier.padding(end = 14.dp, bottom = 104.dp),
+            horizontalAlignment = Alignment.End,
+        ) {
+            if (active && manualMode) {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                        .padding(horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = { manualMode = false }) {
+                        Icon(Icons.Filled.Close, "Fechar seleção manual", tint = MaterialTheme.colorScheme.error)
+                    }
+                    IconButton(onClick = onPrevious) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Parágrafo anterior")
+                    }
+                    IconButton(onClick = onNext) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, "Próximo parágrafo")
+                    }
+                }
+            }
+            Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainer)
-                    .padding(horizontal = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                    .padding(top = 6.dp)
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(buttonColor)
+                    .pointerInput(active, selectedColor, selectedOpacity) {
+                        awaitEachGesture {
+                            awaitFirstDown(requireUnconsumed = false)
+                            val released = withTimeoutOrNull(1500L) {
+                                waitForUpOrCancellation()
+                            }
+                            if (released == null) showPalette = true else onToggle()
+                        }
+                    },
+                contentAlignment = Alignment.Center,
             ) {
-                IconButton(onClick = onStop) { Icon(Icons.Filled.Close, "Desativar marca-texto") }
-                IconButton(onClick = onPrevious) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Parágrafo anterior") }
-                IconButton(onClick = onNext) { Icon(Icons.AutoMirrored.Filled.ArrowForward, "Próximo parágrafo") }
+                Icon(
+                    Icons.Outlined.Highlight,
+                    contentDescription = "Marca-texto",
+                    tint = if (active) iconColor else Color.White.copy(alpha = 0.75f),
+                    modifier = Modifier.size(26.dp),
+                )
             }
         }
-        Box(
-            modifier = Modifier
-                .padding(top = 6.dp)
-                .size(48.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                .pointerInput(Unit) {
-                    awaitEachGesture {
-                        awaitFirstDown(requireUnconsumed = false)
-                        val longPressReached = withTimeoutOrNull(1500L) {
-                            waitForUpOrCancellation()
-                            false
-                        } ?: true
-                        if (longPressReached) showPalette = true else onToggle()
-                    }
-                },
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                Icons.Outlined.Highlight,
-                contentDescription = "Marca-texto",
-                tint = if (highlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(26.dp),
-            )
-        }
-      }
     }
 
     if (showPalette) {
@@ -995,36 +1028,68 @@ private fun ManualMarkerV10Control(
             onDismissRequest = { showPalette = false },
             title = { Text("Marca-texto V10") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Escolha uma cor")
-                    Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                Column(
+                    modifier = Modifier
+                        .heightIn(max = 420.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Text("Transparência: ${(selectedOpacity * 100).toInt()}%")
+                    androidx.compose.material3.Slider(
+                        value = selectedOpacity,
+                        onValueChange = {
+                            selectedOpacity = it
+                            onStyleChange(selectedColor, it)
+                        },
+                        valueRange = 0.05f..1f,
+                    )
+                    Text("70 cores", style = MaterialTheme.typography.labelLarge)
+                    FlowRow(
+                        maxItemsInEachRow = 7,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
                         colors.forEach { hex ->
-                            val parsed = try { Color(android.graphics.Color.parseColor(hex)) } catch (_: Exception) { Color.Yellow }
+                            val swatch = runCatching {
+                                Color(android.graphics.Color.parseColor(hex))
+                            }.getOrDefault(Color.Gray)
                             Box(
                                 modifier = Modifier
                                     .size(25.dp)
-                                    .clip(RoundedCornerShape(50))
-                                    .background(parsed)
-                                    .clickable { selectedColor = hex },
+                                    .clip(CircleShape)
+                                    .background(swatch)
+                                    .border(
+                                        width = if (selectedColor.equals(hex, true)) 2.dp else 1.dp,
+                                        color = if (selectedColor.equals(hex, true)) Color(0xFFD9B0FF) else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                        shape = CircleShape,
+                                    )
+                                    .clickable {
+                                        selectedColor = hex
+                                        onStyleChange(hex, selectedOpacity)
+                                    },
                             )
                         }
                     }
-                    Text("Transparência: " + (selectedOpacity * 100).toInt() + "%")
-                    androidx.compose.material3.Slider(
-                        value = selectedOpacity,
-                        onValueChange = { selectedOpacity = it },
-                        valueRange = 0.05f..1f,
-                    )
+                    Button(
+                        onClick = {
+                            if (!active) onToggle()
+                            onStartManual()
+                            manualMode = true
+                            showPalette = false
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Seleção manual")
+                    }
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
-                    onStyleChange(selectedColor, selectedOpacity)
-                    showPalette = false
-                }) { Text("Aplicar") }
+                TextButton(onClick = { onStyleChange(selectedColor, selectedOpacity); showPalette = false }) {
+                    Text("Concluir")
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showPalette = false }) { Text("Cancelar") }
+                TextButton(onClick = { showPalette = false }) { Text("Fechar") }
             },
         )
     }

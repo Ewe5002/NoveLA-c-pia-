@@ -122,6 +122,7 @@ internal fun SettingsScreenBody(
     }
 
     val showNovelPromptsDialog = remember { mutableStateOf(false) }
+    val showCustomCodeDialog = remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
@@ -237,6 +238,7 @@ internal fun SettingsScreenBody(
         HorizontalDivider()
         SettingsSupport(
             onExportLogs = onExportLogs,
+            onCustomCodeClick = { showCustomCodeDialog.value = true },
         )
         HorizontalDivider()
         SettingsAbout(
@@ -254,6 +256,12 @@ internal fun SettingsScreenBody(
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(120.dp))
+    }
+
+    if (showCustomCodeDialog.value) {
+        CustomCodeSettingsDialog(
+            onDismiss = { showCustomCodeDialog.value = false },
+        )
     }
 
     if (showNovelPromptsDialog.value) {

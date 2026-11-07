@@ -287,7 +287,7 @@ class AppPreferences @Inject constructor(
         )
 
     val APP_LANGUAGE_CODE = object : Preference<String>("APP_LANGUAGE_CODE") {
-        override var value by SharedPreference_String(name, preferences, "en")
+        override var value by SharedPreference_String(name, preferences, "pt")
     }
 
     val IS_FIRST_LAUNCH_DONE = object : Preference<Boolean>("IS_FIRST_LAUNCH_DONE") {
@@ -614,8 +614,14 @@ class AppPreferences @Inject constructor(
         override var value by SharedPreference_Boolean(name, preferences, false)
     }
 
+    // Estado de ativação temporário do marcador; separado da preferência que
+    // controla se o botão deve aparecer no leitor.
+    val MANUAL_HIGHLIGHT_ACTIVE = object : Preference<Boolean>("MANUAL_HIGHLIGHT_ACTIVE") {
+        override var value by SharedPreference_Boolean(name, preferences, false)
+    }
+
     val MANUAL_HIGHLIGHT_COLOR = object : Preference<String>("MANUAL_HIGHLIGHT_COLOR") {
-        override var value by SharedPreference_String(name, preferences, "#FFFFD54F")
+        override var value by SharedPreference_String(name, preferences, "#FF737373")
     }
 
     val MANUAL_HIGHLIGHT_OPACITY = object : Preference<Float>("MANUAL_HIGHLIGHT_OPACITY") {

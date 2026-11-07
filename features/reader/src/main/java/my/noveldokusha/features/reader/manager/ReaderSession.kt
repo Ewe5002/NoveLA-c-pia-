@@ -401,6 +401,10 @@ internal class ReaderSession(
         readerManualHighlight.startFromItemIndex(itemIndex)
     }
 
+    fun toggleManualHighlight(itemIndex: Int) {
+        readerManualHighlight.toggleAtItemIndex(itemIndex)
+    }
+
     fun stopManualHighlight() {
         readerManualHighlight.clear()
     }

@@ -233,6 +233,16 @@ class ReaderActivity : BaseActivity() {
                 currentManualHighlight = { viewModel.state.settings.manualHighlight.highlightedItem.value },
                 currentManualHighlightColor = { appPreferences.MANUAL_HIGHLIGHT_COLOR.value },
                 currentManualHighlightOpacity = { appPreferences.MANUAL_HIGHLIGHT_OPACITY.value },
+                currentMarkerActive = { appPreferences.MANUAL_HIGHLIGHT_ACTIVE.value },
+                onMarkerParagraphClick = { item: my.noveldokusha.features.reader.domain.ReaderItem.Body ->
+                    val index: Int = indexOfReaderItem(
+                        viewModel.items, item.chapterIndex, item.chapterItemPosition
+                    )
+                    if (index >= 0) {
+                        viewModel.toggleManualHighlightAt(index)
+                        viewAdapter.listView.notifyDataSetChanged()
+                    }
+                },
                 currentTextJustify = { appPreferences.READER_TEXT_JUSTIFY.value },
                 currentTextHyphenation = { appPreferences.READER_TEXT_HYPHENATION.value },
                 currentParagraphIndent = { appPreferences.READER_PARAGRAPH_INDENT.value },
@@ -274,6 +284,9 @@ class ReaderActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // A ferramenta começa desativada em cada sessão; a chave de visibilidade
+        // permanece salva separadamente nas configurações.
+        appPreferences.MANUAL_HIGHLIGHT_ACTIVE.value = false
         // Гарантируем инициализацию фонового лоадера (заполняет статический
         // appContext) до setContent → ReaderScreen → backgroundLayer.
         backgroundLoader
@@ -675,7 +688,14 @@ class ReaderActivity : BaseActivity() {
                     },
                     onManualHighlightEnabledChange = {
                         appPreferences.MANUAL_HIGHLIGHT_ENABLED.value = it
-                        if (!it) viewModel.stopManualHighlight()
+                        if (!it) {
+                            // Ocultar o botão não apaga o último parágrafo marcado.
+                            appPreferences.MANUAL_HIGHLIGHT_ACTIVE.value = false
+                        }
+                    },
+                    onMarkerActiveChange = {
+                        appPreferences.MANUAL_HIGHLIGHT_ACTIVE.value = it
+                        viewAdapter.listView.notifyDataSetChanged()
                     },
                     manualHighlight = viewModel.state.settings.manualHighlight,
                     onManualHighlightStart = {
@@ -686,6 +706,7 @@ class ReaderActivity : BaseActivity() {
                                 (viewModel.items.size - 1).coerceAtLeast(0)
                             )
                         )
+                        viewAdapter.listView.notifyDataSetChanged()
                     },
                     manualHighlightInitialPosition = run {
                         val x = appPreferences.MANUAL_HIGHLIGHT_POS_X.value
