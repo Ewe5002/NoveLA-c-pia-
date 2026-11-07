@@ -27,6 +27,9 @@ import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -43,6 +46,7 @@ import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.outlined.ColorLens
+import androidx.compose.material.icons.outlined.Highlight
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Rule
 import androidx.compose.material.icons.outlined.Translate
@@ -159,6 +163,7 @@ internal fun ReaderScreen(
     onManualHighlightStart: () -> Unit = {},
     manualHighlightInitialPosition: Pair<Float, Float>? = null,
     onManualHighlightPositionChange: (Float, Float) -> Unit = { _, _ -> },
+    onManualHighlightStyleChange: (String, Float) -> Unit = { _, _ -> },
     readerContent: @Composable (paddingValues: PaddingValues) -> Unit,
 ) {
     val showReaderInfo by state.showReaderInfo
@@ -651,7 +656,29 @@ internal fun ReaderScreen(
             onDispose { lifecycle.removeObserver(observer) }
         }
 
-        // Destaque manual desativado nesta versão.
+        if (manualHighlight != null) {
+            ManualMarkerV10Control(
+                highlighted = manualHighlight.highlightedItem.value != null,
+                color = appPreferences.MANUAL_HIGHLIGHT_COLOR.value,
+                opacity = appPreferences.MANUAL_HIGHLIGHT_OPACITY.value,
+                onToggle = {
+                    if (manualHighlight.highlightedItem.value != null) {
+                        manualHighlight.clear()
+                        onManualHighlightEnabledChange(false)
+                    } else {
+                        onManualHighlightStart()
+                        onManualHighlightEnabledChange(true)
+                    }
+                },
+                onNext = manualHighlight.next,
+                onPrevious = manualHighlight.previous,
+                onStop = {
+                    manualHighlight.clear()
+                    onManualHighlightEnabledChange(false)
+                },
+                onStyleChange = onManualHighlightStyleChange,
+            )
+        }
     }
 }
 
@@ -890,4 +917,104 @@ private class PreviewDataProvider : PreviewParameterProvider<PreviewDataProvider
         Data(selectedSetting = Type.Style),
         Data(selectedSetting = Type.More),
     )
+}
+
+
+@Composable
+private fun ManualMarkerV10Control(
+    highlighted: Boolean,
+    color: String,
+    opacity: Float,
+    onToggle: () -> Unit,
+    onNext: () -> Unit,
+    onPrevious: () -> Unit,
+    onStop: () -> Unit,
+    onStyleChange: (String, Float) -> Unit,
+) {
+    var showPalette by remember { mutableStateOf(false) }
+    var selectedColor by remember(color) { mutableStateOf(color) }
+    var selectedOpacity by remember(opacity) { mutableFloatStateOf(opacity) }
+    val colors = listOf("#FFFFEB3B", "#FFFF9800", "#FFF44336", "#FFE91E63", "#FF9C27B0", "#FF3F51B5", "#FF03A9F4", "#FF4CAF50", "#FF8BC34A", "#FFFFFFFF")
+
+    Column(
+        modifier = Modifier
+            .align(Alignment.BottomEnd)
+            .padding(end = 14.dp, bottom = 104.dp),
+        horizontalAlignment = Alignment.End,
+    ) {
+        if (highlighted) {
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainer)
+                    .padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onStop) { Icon(Icons.Filled.Close, "Desativar marca-texto") }
+                IconButton(onClick = onPrevious) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Parágrafo anterior") }
+                IconButton(onClick = onNext) { Icon(Icons.AutoMirrored.Filled.ArrowForward, "Próximo parágrafo") }
+            }
+        }
+        Box(
+            modifier = Modifier
+                .padding(top = 6.dp)
+                .size(48.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = { onToggle() },
+                        onLongPress = { showPalette = true },
+                        longPressTimeoutMillis = 1500L,
+                    )
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Outlined.Highlight,
+                contentDescription = "Marca-texto",
+                tint = if (highlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(26.dp),
+            )
+        }
+    }
+
+    if (showPalette) {
+        AlertDialog(
+            onDismissRequest = { showPalette = false },
+            title = { Text("Marca-texto V10") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Escolha uma cor")
+                    Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                        colors.forEach { hex ->
+                            val parsed = try { Color(android.graphics.Color.parseColor(hex)) } catch (_: Exception) { Color.Yellow }
+                            Box(
+                                modifier = Modifier
+                                    .size(25.dp)
+                                    .clip(RoundedCornerShape(50))
+                                    .background(parsed)
+                                    .clickable { selectedColor = hex },
+                            )
+                        }
+                    }
+                    Text("Transparência: " + (selectedOpacity * 100).toInt() + "%")
+                    androidx.compose.material3.Slider(
+                        value = selectedOpacity,
+                        onValueChange = { selectedOpacity = it },
+                        valueRange = 0.05f..1f,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    onStyleChange(selectedColor, selectedOpacity)
+                    showPalette = false
+                }) { Text("Aplicar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPalette = false }) { Text("Cancelar") }
+            },
+        )
+    }
 }
