@@ -707,6 +707,7 @@ class ReaderActivity : BaseActivity() {
                                 (viewModel.items.size - 1).coerceAtLeast(0)
                             )
                         )
+                        viewAdapter.listView.notifyDataSetChanged()
                     },
                     manualHighlightInitialPosition = run {
                         val x = appPreferences.MANUAL_HIGHLIGHT_POS_X.value
