@@ -52,6 +52,20 @@ internal class ReaderManualHighlight(
         setHighlight(targetIndex)
     }
 
+    /** Toque no modo automático: remove o mesmo parágrafo ou substitui pelo novo. */
+    fun toggleAtItemIndex(itemIndex: Int) {
+        val targetIndex = firstHighlightItemIndexAtOrAfter(items, itemIndex) ?: return
+        val target = items.getOrNull(targetIndex) as? ReaderItem.Text ?: return
+        val current = _highlightedItem.value
+        if (current?.chapterIndex == target.chapterIndex &&
+            current.chapterItemPosition == target.chapterItemPosition
+        ) {
+            clear()
+        } else {
+            setHighlight(targetIndex)
+        }
+    }
+
     fun next() {
         val current = _highlightedItem.value ?: return
         val currentIndex = indexOfReaderItem(
