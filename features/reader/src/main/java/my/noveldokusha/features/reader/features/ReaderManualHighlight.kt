@@ -45,12 +45,11 @@ internal class ReaderManualHighlight(
 
     /**
      * Подсвечивает первый абзац с [itemIndex] включительно (пропуская нетекстовые
-     * элементы) и останавливает TTS, чтобы режимы не пересекались.
+     * элементы). Режим ручной подсветки не останавливает TTS.
      */
     fun startFromItemIndex(itemIndex: Int) {
         val targetIndex = firstHighlightItemIndexAtOrAfter(items, itemIndex) ?: return
         setHighlight(targetIndex)
-        stopTextToSpeech()
     }
 
     fun next() {
