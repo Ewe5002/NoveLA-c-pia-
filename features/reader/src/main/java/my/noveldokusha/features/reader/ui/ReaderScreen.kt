@@ -35,8 +35,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Public
@@ -936,12 +938,14 @@ private fun ManualMarkerV10Control(
     var selectedOpacity by remember(opacity) { mutableFloatStateOf(opacity) }
     val colors = listOf("#FFFFEB3B", "#FFFF9800", "#FFF44336", "#FFE91E63", "#FF9C27B0", "#FF3F51B5", "#FF03A9F4", "#FF4CAF50", "#FF8BC34A", "#FFFFFFFF")
 
-    Column(
-        modifier = Modifier
-            .align(Alignment.BottomEnd)
-            .padding(end = 14.dp, bottom = 104.dp),
-        horizontalAlignment = Alignment.End,
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.BottomEnd,
     ) {
+      Column(
+        modifier = Modifier.padding(end = 14.dp, bottom = 104.dp),
+        horizontalAlignment = Alignment.End,
+      ) {
         if (highlighted) {
             Row(
                 modifier = Modifier
@@ -977,6 +981,7 @@ private fun ManualMarkerV10Control(
                 modifier = Modifier.size(26.dp),
             )
         }
+      }
     }
 
     if (showPalette) {
