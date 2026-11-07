@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Translate
@@ -85,12 +86,18 @@ internal fun <T : View> WebViewScreen(
     translationEnabled: Boolean = false,
     isTranslated: Boolean = false,
     onTranslateClicked: () -> Unit = {},
+    customJavaScript: String = "",
+    customCss: String = "",
+    onCustomCodeSave: (String, String) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
 
     var editingUrl by remember(toolbarTitle) { mutableStateOf(toolbarTitle) }
     var isFocused by remember { mutableStateOf(false) }
+    var showCustomCodeDialog by remember { mutableStateOf(false) }
+    var javascriptDraft by remember(customJavaScript) { mutableStateOf(customJavaScript) }
+    var cssDraft by remember(customCss) { mutableStateOf(customCss) }
 
     Scaffold(
         topBar = {
@@ -176,6 +183,12 @@ internal fun <T : View> WebViewScreen(
                         )
 
                         LabeledIconButton(
+                            icon = Icons.Default.Code,
+                            label = "JS/CSS",
+                            onClick = { showCustomCodeDialog = true }
+                        )
+
+                        LabeledIconButton(
                             icon = Icons.Default.ContentPaste,
                             label = "Paste",
                             onClick = {
@@ -215,4 +228,22 @@ internal fun <T : View> WebViewScreen(
             )
         }
     )
+
+    if (showCustomCodeDialog) {
+        AlertDialog(
+            onDismissRequest = { showCustomCodeDialog = false },
+            title = { Text("JavaScript e CSS personalizados") },
+            text = {
+                Column {
+                    Text("JavaScript", style = MaterialTheme.typography.labelLarge)
+                    OutlinedTextField(value = javascriptDraft, onValueChange = { javascriptDraft = it }, modifier = Modifier.fillMaxWidth().height(150.dp), placeholder = { Text("// Código JavaScript") }, minLines = 4)
+                    Spacer(Modifier.height(12.dp))
+                    Text("CSS", style = MaterialTheme.typography.labelLarge)
+                    OutlinedTextField(value = cssDraft, onValueChange = { cssDraft = it }, modifier = Modifier.fillMaxWidth().height(150.dp), placeholder = { Text("/* Código CSS */") }, minLines = 4)
+                }
+            },
+            confirmButton = { TextButton(onClick = { onCustomCodeSave(javascriptDraft, cssDraft); showCustomCodeDialog = false }) { Text("Salvar") } },
+            dismissButton = { TextButton(onClick = { showCustomCodeDialog = false }) { Text("Cancelar") } }
+        )
+    }
 }
