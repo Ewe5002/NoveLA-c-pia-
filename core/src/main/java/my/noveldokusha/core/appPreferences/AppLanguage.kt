@@ -17,7 +17,7 @@ data class AppLanguage(
         val GERMAN = AppLanguage("de", Locale.GERMAN)
         val FRENCH = AppLanguage("fr", Locale.FRENCH)
         val SPANISH = AppLanguage("es", Locale("es"))
-        val PORTUGUESE = AppLanguage("pt", Locale("pt"))
+        val PORTUGUESE = AppLanguage("pt", Locale("pt", "BR"))
         val TURKISH = AppLanguage("tr", Locale("tr"))
         val CHINESE = AppLanguage("zh", Locale.CHINESE)
         val ARABIC = AppLanguage("ar", Locale("ar"))
