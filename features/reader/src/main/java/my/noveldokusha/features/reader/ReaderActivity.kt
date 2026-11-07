@@ -231,6 +231,8 @@ class ReaderActivity : BaseActivity() {
                 currentTextColor = { appPreferences.READER_TEXT_COLOR.value },
                 currentSpokenWordRange = { viewModel.readerSpeaker.state.spokenWordRange.value },
                 currentManualHighlight = { viewModel.state.settings.manualHighlight.highlightedItem.value },
+                currentManualHighlightColor = { appPreferences.MANUAL_HIGHLIGHT_COLOR.value },
+                currentManualHighlightOpacity = { appPreferences.MANUAL_HIGHLIGHT_OPACITY.value },
                 currentTextJustify = { appPreferences.READER_TEXT_JUSTIFY.value },
                 currentTextHyphenation = { appPreferences.READER_TEXT_HYPHENATION.value },
                 currentParagraphIndent = { appPreferences.READER_PARAGRAPH_INDENT.value },
@@ -693,6 +695,11 @@ class ReaderActivity : BaseActivity() {
                     onManualHighlightPositionChange = { x, y ->
                         appPreferences.MANUAL_HIGHLIGHT_POS_X.value = x
                         appPreferences.MANUAL_HIGHLIGHT_POS_Y.value = y
+                    },
+                    onManualHighlightStyleChange = { color, opacity ->
+                        appPreferences.MANUAL_HIGHLIGHT_COLOR.value = color
+                        appPreferences.MANUAL_HIGHLIGHT_OPACITY.value = opacity
+                        viewAdapter.listView.notifyDataSetChanged()
                     },
                     onPressBack = {
                         viewModel.onCloseManually()
