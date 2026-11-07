@@ -621,7 +621,7 @@ class AppPreferences @Inject constructor(
     }
 
     val MANUAL_HIGHLIGHT_COLOR = object : Preference<String>("MANUAL_HIGHLIGHT_COLOR") {
-        override var value by SharedPreference_String(name, preferences, "#FFFFD54F")
+        override var value by SharedPreference_String(name, preferences, "#FF737373")
     }
 
     val MANUAL_HIGHLIGHT_OPACITY = object : Preference<Float>("MANUAL_HIGHLIGHT_OPACITY") {
