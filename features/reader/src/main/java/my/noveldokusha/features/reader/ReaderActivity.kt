@@ -234,8 +234,8 @@ class ReaderActivity : BaseActivity() {
                 currentManualHighlightColor = { appPreferences.MANUAL_HIGHLIGHT_COLOR.value },
                 currentManualHighlightOpacity = { appPreferences.MANUAL_HIGHLIGHT_OPACITY.value },
                 currentMarkerActive = { appPreferences.MANUAL_HIGHLIGHT_ACTIVE.value },
-                onMarkerParagraphClick = { item ->
-                    val index = indexOfReaderItem(
+                onMarkerParagraphClick = { item: my.noveldokusha.features.reader.domain.ReaderItem.Body ->
+                    val index: Int = indexOfReaderItem(
                         viewModel.items, item.chapterIndex, item.chapterItemPosition
                     )
                     if (index >= 0) {
