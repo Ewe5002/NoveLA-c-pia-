@@ -9,8 +9,8 @@ internal data class HighlightPosition(
     val chapterItemPosition: Int,
 )
 
-/** Подсвечиваемыми считаем только текстовые элементы (Title и Body). */
-private fun ReaderItem.isHighlightable(): Boolean = this is ReaderItem.Text
+/** Маркер применяется только к абзацам основного текста, не к заголовкам. */
+private fun ReaderItem.isHighlightable(): Boolean = this is ReaderItem.Body
 
 /**
  * Индекс первого подсвечиваемого элемента с [fromIndex] включительно.
