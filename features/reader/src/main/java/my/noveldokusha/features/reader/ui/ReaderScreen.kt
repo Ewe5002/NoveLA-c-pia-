@@ -651,26 +651,7 @@ internal fun ReaderScreen(
             onDispose { lifecycle.removeObserver(observer) }
         }
 
-        // Плавающая кнопка ручной подсветки: скрывается при открытых настройках,
-        // при активном TTS и при выключенной настройке.
-        val manual = manualHighlight
-        val manualHighlightVisible = manual != null &&
-            manualHighlightEnabled &&
-            selectedSetting == Type.None &&
-            !state.settings.textToSpeech.isPlaying.value
-
-        if (manualHighlightVisible) {
-            ManualHighlightPill(
-                areaSize = readerAreaSize,
-                highlightedItem = manual.highlightedItem.value,
-                onStart = onManualHighlightStart,
-                onNext = manual.next,
-                onPrevious = manual.previous,
-                onClear = manual.clear,
-                initialPosition = manualHighlightInitialPosition,
-                onPositionChange = onManualHighlightPositionChange,
-            )
-        }
+        // Destaque manual desativado nesta versão.
     }
 }
 
