@@ -298,15 +298,67 @@ class WebViewActivity : ComponentActivity() {
     }
 
     private fun applyCustomWebCode() {
-        if (!::webView.isInitialized) return
+        if (!::webView.isInitialized || isBypassMode || bookUrl.isBlank()) return
         val javascript = customCodePrefs.getString("javascript", "").orEmpty()
         val css = customCodePrefs.getString("css", "").orEmpty()
-        val cssScript = if (css.isNotBlank()) {
-            "(function(){var id='__noveld_custom_css__';var s=document.getElementById(id);if(!s){s=document.createElement('style');s.id=id;(document.head||document.documentElement).appendChild(s);}s.textContent=" + JSONObject.quote(css) + ";})();"
-        } else "(function(){var s=document.getElementById('__noveld_custom_css__');if(s)s.remove();})();"
-        webView.evaluateJavascript(cssScript, null)
-        if (javascript.isNotBlank()) {
-            webView.evaluateJavascript("(function(){try{" + javascript + ";\n}catch(e){console.error('NOvel LD custom JS:',e)}})();", null)
+        // Only run custom code on a page that appears to contain chapter text.
+        val chapterCheck = """
+            (function() {
+                var selectors = 'article, main, [class*="chapter"], [id*="chapter"], [class*="reader"], [class*="content"]';
+                var candidates = Array.from(document.querySelectorAll(selectors));
+                var root = candidates.filter(function(el) {
+                    return el.querySelectorAll('p').length >= 3 &&
+                        ((el.innerText || el.textContent || '').trim().length >= 500);
+                }).sort(function(a, b) {
+                    return (b.innerText || b.textContent || '').length -
+                           (a.innerText || a.textContent || '').length;
+                })[0];
+                if (!root) {
+                    var old = document.getElementById('__lnovel_chapter_css__');
+                    if (old) old.remove();
+                    return false;
+                }
+                root.id = root.id || '__lnovel_chapter_root__';
+                root.setAttribute('data-lnovel-chapter', 'true');
+                return true;
+            })();
+        """.trimIndent()
+        webView.evaluateJavascript(chapterCheck) { result ->
+            if (result != "true") return@evaluateJavascript
+            val cssScript = if (css.isNotBlank()) {
+                """
+                (function() {
+                    var root = document.querySelector('[data-lnovel-chapter="true"]');
+                    if (!root) return;
+                    var prefix = '#' + (root.id || '__lnovel_chapter_root__');
+                    var scoped = \${JSONObject.quote(css)}.replace(
+                        /(^|})\\s*([^@{}][^{}]*)\\{/g,
+                        function(_, boundary, selectors) {
+                            return boundary + selectors.split(',').map(function(s) {
+                                return prefix + ' ' + s.trim();
+                            }).join(', ') + '{';
+                        }
+                    );
+                    var style = document.getElementById('__lnovel_chapter_css__');
+                    if (!style) {
+                        style = document.createElement('style');
+                        style.id = '__lnovel_chapter_css__';
+                        document.head.appendChild(style);
+                    }
+                    style.textContent = scoped;
+                })();
+                """.trimIndent()
+            } else {
+                "(function(){var s=document.getElementById('__lnovel_chapter_css__');if(s)s.remove();})();"
+            }
+            webView.evaluateJavascript(cssScript, null)
+            if (javascript.isNotBlank()) {
+                webView.evaluateJavascript(
+                    "(function(){var chapter=document.querySelector('[data-lnovel-chapter=\"true\"]');if(!chapter)return;try{" +
+                        javascript + ";\\n}catch(e){console.error('LNovel chapter JS:',e)}})();",
+                    null
+                )
+            }
         }
     }
 
