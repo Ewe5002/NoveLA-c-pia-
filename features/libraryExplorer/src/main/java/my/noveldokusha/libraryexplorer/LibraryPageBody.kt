@@ -58,7 +58,6 @@ import my.noveldokusha.coreui.components.BookRatingBadge
 import my.noveldokusha.coreui.components.toContentTypeBadgeIcon
 import my.noveldokusha.core.rememberResolvedBookImagePath
 import my.noveldokusha.feature.local_database.BookWithContext
-import my.noveldokusha.coreui.R as CoreUiR
 
 @Composable
 internal enum class LibraryDisplayMode { COMFORTABLE_GRID, COMPACT_GRID, DETAILED_LIST }
@@ -132,7 +131,7 @@ internal fun LibraryPageBody(
                                     bookUrl = item.book.url,
                                     imagePath = item.book.coverImageUrl
                                 ),
-                                error = CoreUiR.drawable.default_book_cover,
+                                error = R.drawable.default_book_cover,
                                 modifier = Modifier
                                     .width(58.dp)
                                     .height(82.dp)
