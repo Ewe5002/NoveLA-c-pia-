@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -47,6 +50,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import my.noveldokusha.core.appPreferences.SourceStripPosition
 import my.noveldokusha.coreui.R
 import my.noveldokusha.core.domain.LibraryCategory
+import my.noveldokusha.core.appPreferences.TernaryState
 import my.noveldokusha.feature.local_database.BookWithContext
 
 @OptIn(
@@ -70,12 +74,16 @@ internal fun LibraryScreenBody(
     customCategories: List<String> = emptyList(),
     onCreateCategory: () -> Unit = {},
     onDeleteCategory: (String) -> Unit = {},
+    readFilter: TernaryState = TernaryState.Inactive,
+    onReadFilterChange: (TernaryState) -> Unit = {},
     viewModel: LibraryPageViewModel = viewModel(),
 ) {
     val pullToRefreshState = rememberPullToRefreshState()
     val gridState = rememberLazyGridState()
     var showDeleteCategoryPicker by remember { mutableStateOf(false) }
     var showDeleteCategoryConfirm by remember { mutableStateOf<String?>(null) }
+    var displayMode by remember { mutableStateOf(LibraryDisplayMode.COMFORTABLE_GRID) }
+    val selectedCategories by viewModel.selectedCategories.collectAsStateWithLifecycle()
 
     PullToRefreshBox(
         isRefreshing = viewModel.isUpdating,
@@ -86,9 +94,42 @@ internal fun LibraryScreenBody(
         modifier = Modifier.padding(innerPadding)
     ) {
         Column {
+            // Quick status filters — library shortcuts.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = selectedCategories.isEmpty() && readFilter == TernaryState.Inactive,
+                    onClick = {
+                        viewModel.clearCategoryFilters()
+                        onReadFilterChange(TernaryState.Inactive)
+                    },
+                    label = { Text("Todos") }
+                )
+                FilterChip(
+                    selected = readFilter == TernaryState.Inverse,
+                    onClick = {
+                        viewModel.clearCategoryFilters()
+                        onReadFilterChange(TernaryState.Inverse)
+                    },
+                    label = { Text("Não lidos") }
+                )
+                FilterChip(
+                    selected = "Completed" in selectedCategories,
+                    onClick = {
+                        onReadFilterChange(TernaryState.Inactive)
+                        viewModel.clearCategoryFilters()
+                        viewModel.toggleCategory("Completed")
+                    },
+                    label = { Text(stringResource(R.string.completed)) }
+                )
+            }
+
             // Category filter chips (like LanguageFilterChips in Finder)
             if (showCategories) {
-                val selectedCategories by viewModel.selectedCategories.collectAsStateWithLifecycle()
                 val catCounts by viewModel.categoryCounts
                 val allCategories = buildList {
                     add("" to stringResource(R.string.reading))
@@ -203,6 +244,30 @@ internal fun LibraryScreenBody(
                 }
             }
 
+            // Display density selector — comfortable covers are the default.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = displayMode == LibraryDisplayMode.COMFORTABLE_GRID,
+                    onClick = { displayMode = LibraryDisplayMode.COMFORTABLE_GRID },
+                    label = { Text("Capas") }
+                )
+                FilterChip(
+                    selected = displayMode == LibraryDisplayMode.COMPACT_GRID,
+                    onClick = { displayMode = LibraryDisplayMode.COMPACT_GRID },
+                    label = { Text("Compacta") }
+                )
+                FilterChip(
+                    selected = displayMode == LibraryDisplayMode.DETAILED_LIST,
+                    onClick = { displayMode = LibraryDisplayMode.DETAILED_LIST },
+                    label = { Text("Lista") }
+                )
+            }
+
             // Single list filtered by selected categories
             val list by viewModel.filteredList
             val sources by viewModel.luaSources.collectAsStateWithLifecycle()
@@ -220,6 +285,7 @@ internal fun LibraryScreenBody(
                     pendingRemoval = pendingRemoval,
                     gridState = gridState,
                     translatedTitles = translatedTitles,
+                    displayMode = displayMode,
                 )
             } else {
                 Box(
