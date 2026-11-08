@@ -5,6 +5,13 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import my.noveldokusha.coreui.components.ImageView
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -51,6 +58,10 @@ import my.noveldokusha.coreui.components.BookRatingBadge
 import my.noveldokusha.coreui.components.toContentTypeBadgeIcon
 import my.noveldokusha.core.rememberResolvedBookImagePath
 import my.noveldokusha.feature.local_database.BookWithContext
+import my.noveldokusha.coreui.R as CoreUiR
+
+@Composable
+internal enum class LibraryDisplayMode { COMFORTABLE_GRID, COMPACT_GRID, DETAILED_LIST }
 
 @Composable
 internal fun LibraryPageBody(
@@ -69,6 +80,7 @@ internal fun LibraryPageBody(
     // bookUrl → переведённое название новеллы (берётся из BookTranslation).
     // Пустая/отсутствующая запись = показываем оригинал.
     translatedTitles: Map<String, String> = emptyMap(),
+    displayMode: LibraryDisplayMode = LibraryDisplayMode.COMFORTABLE_GRID,
 ) {
     if (list.isEmpty()) {
         Box(
@@ -91,72 +103,159 @@ internal fun LibraryPageBody(
             }
         }
     } else {
-        LazyVerticalGrid(
-            state = gridState,
-            columns = GridCells.Fixed(gridColumns.coerceIn(2, 6)),
-            contentPadding = PaddingValues(top = 4.dp, bottom = 100.dp, start = 4.dp, end = 4.dp),
-        ) {
-            items(
-                items = list,
-                key = { it.book.url },
-                contentType = { "book" }
+        if (displayMode == LibraryDisplayMode.DETAILED_LIST) {
+            androidx.compose.foundation.lazy.LazyColumn(
+                contentPadding = PaddingValues(top = 6.dp, bottom = 100.dp, start = 10.dp, end = 10.dp),
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
             ) {
-                val isSelected = selectedBooks[it.book.url] ?: false
-                val isRemoving = it.book.url in pendingRemoval
-                AnimatedVisibility(
-                    visible = !isRemoving,
-                    exit = fadeOut(animationSpec = tween(300)) + scaleOut(animationSpec = tween(300))
-                ) {
-                    Box {
-                        val notReadCount = (it.chaptersCount - it.chaptersReadCount).coerceAtLeast(0)
-                        BookImageButtonView(
-                            title = translatedTitles[it.book.url]?.takeIf { t -> t.isNotBlank() } ?: it.book.title,
-                            coverImageModel = rememberResolvedBookImagePath(
-                                bookUrl = it.book.url,
-                                imagePath = it.book.coverImageUrl
-                            ),
-                            onClick = { onClick(it) },
-                            onLongClick = { onLongClick(it) },
-                            sourceStripUnreadCount = notReadCount,
-                            sourceStripSourceName = getSourceName(it.book.url),
-                            sourceStripPosition = sourceStripPosition,
-                            fadeInDurationMillis = 250,
-                            topLeftBadge = {
-                                Box(
-                                    modifier = Modifier
-                                        .padding(4.dp)
-                                        .size(20.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.75f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        painter = painterResource(it.book.contentType.toContentTypeBadgeIcon()),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(12.dp),
-                                        tint = MaterialTheme.colorScheme.onPrimary
-                                    )
-                                }
-                            },
-                            topRightBadge = { BookRatingBadge(rating = it.book.rating) },
-                            forceCache = true
-                        )
-
-                        // Selection overlay
-                        if (isSelectionMode && isSelected) {
-                            Box(
+                items(items = list, key = { it.book.url }) { item ->
+                    val isSelected = selectedBooks[item.book.url] ?: false
+                    val isRemoving = item.book.url in pendingRemoval
+                    AnimatedVisibility(
+                        visible = !isRemoving,
+                        exit = fadeOut(animationSpec = tween(220)) + scaleOut(animationSpec = tween(220))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                                .combinedClickable(
+                                    onClick = { onClick(item) },
+                                    onLongClick = { onLongClick(item) }
+                                )
+                                .padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            ImageView(
+                                imageModel = rememberResolvedBookImagePath(
+                                    bookUrl = item.book.url,
+                                    imagePath = item.book.coverImageUrl
+                                ),
+                                error = CoreUiR.drawable.default_book_cover,
                                 modifier = Modifier
-                                    .matchParentSize()
-                                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f))
+                                    .width(58.dp)
+                                    .height(82.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                            )
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = 12.dp)
                             ) {
+                                Text(
+                                    text = translatedTitles[item.book.url]?.takeIf { it.isNotBlank() } ?: item.book.title,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    maxLines = 2,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = getSourceName(item.book.url),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1
+                                )
+                                Spacer(Modifier.height(6.dp))
+                                val unread = (item.chaptersCount - item.chaptersReadCount).coerceAtLeast(0)
+                                Text(
+                                    text = "${item.chaptersReadCount} / ${item.chaptersCount} capítulos • ${unread} não lidos",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (unread > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                androidx.compose.material3.LinearProgressIndicator(
+                                    progress = {
+                                        if (item.chaptersCount > 0) item.chaptersReadCount.toFloat() / item.chaptersCount.toFloat() else 0f
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 6.dp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            }
+                            if (isSelectionMode && isSelected) {
                                 Icon(
                                     imageVector = Icons.Default.CheckCircle,
                                     contentDescription = stringResource(R.string.selected),
                                     tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier
-                                        .align(Alignment.Center)
-                                        .size(48.dp)
+                                    modifier = Modifier.padding(start = 8.dp).size(26.dp)
                                 )
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            LazyVerticalGrid(
+                state = gridState,
+                columns = GridCells.Fixed(
+                    if (displayMode == LibraryDisplayMode.COMPACT_GRID) {
+                        (gridColumns + 1).coerceIn(3, 6)
+                    } else {
+                        gridColumns.coerceIn(2, 6)
+                    }
+                ),
+                contentPadding = PaddingValues(top = 4.dp, bottom = 100.dp, start = 4.dp, end = 4.dp),
+            ) {
+                items(
+                    items = list,
+                    key = { it.book.url },
+                    contentType = { "book" }
+                ) {
+                    val isSelected = selectedBooks[it.book.url] ?: false
+                    val isRemoving = it.book.url in pendingRemoval
+                    AnimatedVisibility(
+                        visible = !isRemoving,
+                        exit = fadeOut(animationSpec = tween(300)) + scaleOut(animationSpec = tween(300))
+                    ) {
+                        Box {
+                            val notReadCount = (it.chaptersCount - it.chaptersReadCount).coerceAtLeast(0)
+                            BookImageButtonView(
+                                title = translatedTitles[it.book.url]?.takeIf { t -> t.isNotBlank() } ?: it.book.title,
+                                coverImageModel = rememberResolvedBookImagePath(
+                                    bookUrl = it.book.url,
+                                    imagePath = it.book.coverImageUrl
+                                ),
+                                onClick = { onClick(it) },
+                                onLongClick = { onLongClick(it) },
+                                sourceStripUnreadCount = notReadCount,
+                                sourceStripSourceName = getSourceName(it.book.url),
+                                sourceStripPosition = sourceStripPosition,
+                                fadeInDurationMillis = 250,
+                                topLeftBadge = {
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(4.dp)
+                                            .size(20.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.75f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(it.book.contentType.toContentTypeBadgeIcon()),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(12.dp),
+                                            tint = MaterialTheme.colorScheme.onPrimary
+                                        )
+                                    }
+                                },
+                                topRightBadge = { BookRatingBadge(rating = it.book.rating) },
+                                forceCache = true
+                            )
+                            if (isSelectionMode && isSelected) {
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f))
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = stringResource(R.string.selected),
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.align(Alignment.Center).size(48.dp)
+                                    )
+                                }
                             }
                         }
                     }
