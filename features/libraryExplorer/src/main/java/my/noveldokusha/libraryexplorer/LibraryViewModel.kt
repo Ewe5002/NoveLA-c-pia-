@@ -130,6 +130,10 @@ internal class LibraryViewModel @Inject constructor(
         _uiState.update { it.copy(bookActionsSheetBook = book) }
     }
 
+    fun setReadFilter(filter: TernaryState) {
+        appPreferences.LIBRARY_FILTER_READ.value = filter
+    }
+
     fun setGridColumns(columns: Int) {
         appPreferences.BOOKS_GRID_COLUMNS.value = columns.coerceIn(2, 6)
     }
