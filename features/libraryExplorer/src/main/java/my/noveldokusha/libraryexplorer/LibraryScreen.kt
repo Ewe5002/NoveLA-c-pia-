@@ -45,6 +45,7 @@ import my.noveldokusha.navigation.NavigationRouteViewModel
 import my.noveldokusha.feature.local_database.BookMetadata
 import my.noveldokusha.feature.local_database.BookWithContext
 import my.noveldokusha.feature.local_database.tables.Book
+import my.noveldokusha.core.appPreferences.TernaryState
 
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
@@ -272,7 +273,9 @@ fun LibraryScreen(
                 showCategories = uiState.showCategories,
                 customCategories = uiState.customCategories,
                 onCreateCategory = { showCreateCategoryDialog = true },
-                onDeleteCategory = { libraryModel.removeCategory(it) }
+                onDeleteCategory = { libraryModel.removeCategory(it) },
+                readFilter = uiState.readFilter,
+                onReadFilterChange = libraryModel::setReadFilter
             )
         }
     )
