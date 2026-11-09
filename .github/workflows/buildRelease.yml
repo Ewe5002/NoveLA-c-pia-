@@ -75,7 +75,7 @@ jobs:
           SHORT_SHA: ${{ env.SHORT_SHA }}
         run: |
           mkdir -p release-artifacts
-          if [ "${{ inputs.build_type }}" = "test" ]; then
+          if [ "${{ inputs.build_type || 'test' }}" != "release" ]; then
             find app/build/outputs/apk/debug -maxdepth 1 -name '*.apk' -exec cp {} release-artifacts/ \;
           else
             find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' -exec cp {} release-artifacts/ \;
@@ -90,7 +90,7 @@ jobs:
 
       # ── Test build: upload as workflow artifact (no release) ────────────────
       - name: Upload APK artifact (test build)
-        if: inputs.build_type == 'test'
+        if: inputs.build_type != 'release'
         uses: actions/upload-artifact@v7
         with:
           name: NoveLA-v${{ env.APP_VERSION }}-test
