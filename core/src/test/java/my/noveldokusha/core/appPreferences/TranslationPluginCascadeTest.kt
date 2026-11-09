@@ -538,20 +538,20 @@ class TranslationPluginCascadeTest {
     }
 
     @Test
-    fun `setter enabled in global mode writes global not per-novel`() {
+    fun `setter enabled in global mode writes per-novel override without changing global`() {
         prefs.TRANSLATION_GLOBAL_MODE.value = true
         prefs.GLOBAL_TRANSLATION_ENABLED.value = false
 
-        // В глобальном режиме сеттер адаптивен: пишет в глобальный включённый флаг.
+        // Uma alteração manual de obra cria uma exceção individual, mesmo no modo global.
         prefs.setTranslationEnabledForBook("https://example.com/book/1", true)
 
-        // Глобальный enabled включён, book-карта НЕ тронута.
-        assertTrue(prefs.GLOBAL_TRANSLATION_ENABLED.value)
-        assertFalse(prefs.TRANSLATION_BOOK_ENABLED_MAP.value.containsKey("https://example.com/book/1"))
+        // A configuração global permanece intacta e a exceção da obra é persistida.
+        assertFalse(prefs.GLOBAL_TRANSLATION_ENABLED.value)
+        assertEquals(true, prefs.TRANSLATION_BOOK_ENABLED_MAP.value["https://example.com/book/1"])
 
-        // Выключение в глобальном режиме также пишет в глобальный флаг.
+        // Desativar a obra também atualiza somente a exceção individual.
         prefs.setTranslationEnabledForBook("https://example.com/book/1", false)
         assertFalse(prefs.GLOBAL_TRANSLATION_ENABLED.value)
-        assertFalse(prefs.TRANSLATION_BOOK_ENABLED_MAP.value.containsKey("https://example.com/book/1"))
+        assertEquals(false, prefs.TRANSLATION_BOOK_ENABLED_MAP.value["https://example.com/book/1"])
     }
 }
