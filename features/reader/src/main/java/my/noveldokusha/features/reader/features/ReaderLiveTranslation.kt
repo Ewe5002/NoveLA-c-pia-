@@ -117,9 +117,8 @@ internal class ReaderLiveTranslation(
     // в глобальном режиме — GLOBAL_TRANSLATION_ENABLED, вне — пер-новел карта.
     // Каскад (плагин/глобал могут переводить) учитывается отдельно в updateTranslatorState.
     private fun resolveRawEnable(): Boolean =
-        if (appPreferences.TRANSLATION_GLOBAL_MODE.value)
-            appPreferences.GLOBAL_TRANSLATION_ENABLED.value
-        else appPreferences.TRANSLATION_BOOK_ENABLED_MAP.value[bookUrl] == true
+        appPreferences.TRANSLATION_BOOK_ENABLED_MAP.value[bookUrl]
+            ?: translationSettingsResolver.translationEnabledForBook(bookUrl)
 
     // Реактивные списки избранных языков и последних пар: мутации внутри них
     // триггерят рекомпозицию, поэтому диалог сразу отражает изменения.
