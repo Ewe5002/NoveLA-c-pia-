@@ -150,12 +150,14 @@ class App : Application(), SingletonImageLoader.Factory, WorkConfiguration.Provi
     }
 
     private fun resolveAppLanguage(appPreferences: AppPreferences): AppLanguage {
-        // A primeira instalação começa em português do Brasil. Depois disso,
-        // respeitamos integralmente a escolha salva pelo usuário ou "Seguir sistema".
+        // A primeira instalação segue o idioma do Android quando disponível.
+        // A escolha manual feita posteriormente continua sendo respeitada.
         if (!appPreferences.IS_FIRST_LAUNCH_DONE.value) {
-            appPreferences.APP_LANGUAGE_CODE.value = AppLanguage.PORTUGUESE.code
+            val detected = AppLanguageProvider.fromLocale(getSystemLocale())
+            appPreferences.APP_LANGUAGE_CODE.value = detected.code
+            appPreferences.IS_FOLLOW_SYSTEM_LANGUAGE.value = true
             appPreferences.IS_FIRST_LAUNCH_DONE.value = true
-            return AppLanguage.PORTUGUESE
+            return detected
         }
         if (appPreferences.IS_FOLLOW_SYSTEM_LANGUAGE.value) {
             return AppLanguageProvider.fromLocale(getSystemLocale())
