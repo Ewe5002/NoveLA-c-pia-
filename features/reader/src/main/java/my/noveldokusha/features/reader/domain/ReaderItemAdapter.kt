@@ -192,7 +192,7 @@ internal class ReaderItemAdapter(
             result.setSpan(object : ClickableSpan() {
                 override fun onClick(widget: View) {
                     val noteView = TextView(ctx).apply {
-                        text = note
+                        setText(note)
                         textSize = 16f
                         setTextIsSelectable(true)
                         setPadding(24, 20, 24, 20)
