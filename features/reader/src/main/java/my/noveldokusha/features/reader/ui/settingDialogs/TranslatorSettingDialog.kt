@@ -88,7 +88,9 @@ internal fun TranslatorSettingDialog(
             // Manual whole-book translation is explicit and does not enable live translation.
             Button(
                 onClick = { showManualTranslateConfirm = true },
-                enabled = !isScrolling && state.manualTranslationStatus.value?.startsWith("Traduzindo obra:") != true,
+                enabled = !isScrolling && state.manualTranslationStatus.value?.let {
+                    it.startsWith("Traduzindo obra:") || it.startsWith("Preparando tradução manual")
+                } != true,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("Traduzir obra manualmente")
