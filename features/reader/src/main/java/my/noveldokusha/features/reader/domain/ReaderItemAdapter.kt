@@ -285,19 +285,19 @@ internal class ReaderItemAdapter(
             }
 
             bind.bodyTranslated.text = withFootnoteLinks(displayPrimary, item.footnotes)
-            bind.bodyTranslated.movementMethod = LinkMovementMethod.getInstance()
             bind.bodyTranslated.textSize = currentFontSize()
             applyBodyFormatting(bind.bodyTranslated)
             bind.bodyTranslated.updateTextSelectability()
+            bind.bodyTranslated.movementMethod = LinkMovementMethod.getInstance()
             bind.bodyTranslated.setLineSpacing(0f, currentLineHeight())
             bind.bodyTranslated.letterSpacing = currentLetterSpacing()
             applyTextColor(bind.bodyTranslated, currentTextColor())
 
             bind.bodyOriginal.text = withFootnoteLinks(secondaryText, item.footnotes)
-            bind.bodyOriginal.movementMethod = LinkMovementMethod.getInstance()
             bind.bodyOriginal.textSize = currentFontSize() * 0.85f
             applyBodyFormatting(bind.bodyOriginal)
             bind.bodyOriginal.updateTextSelectability()
+            bind.bodyOriginal.movementMethod = LinkMovementMethod.getInstance()
             bind.bodyOriginal.setLineSpacing(0f, currentLineHeight())
             bind.bodyOriginal.letterSpacing = currentLetterSpacing()
             applyTextColor(bind.bodyOriginal, currentTextColor())
