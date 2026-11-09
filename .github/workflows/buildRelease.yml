@@ -1,6 +1,9 @@
 name: Build & Publish
 
 on:
+  push:
+    branches:
+      - release/lnovel-1.6.3
   workflow_dispatch:
     inputs:
       build_type:
@@ -17,7 +20,7 @@ permissions:
 
 jobs:
   build:
-    name: Build APK (${{ inputs.build_type }})
+    name: Build APK (${{ inputs.build_type || 'test' }})
     runs-on: ubuntu-latest
     steps:
       - name: Clone repo
@@ -48,8 +51,12 @@ jobs:
       - name: Remove local Java home from gradle.properties
         run: sed -i '/org\.gradle\.java\.home/d' gradle.properties
 
+      - name: Run unit tests
+        if: inputs.build_type != 'release'
+        run: ./gradlew testDebugUnitTest
+
       - name: Build debug APK (test)
-        if: inputs.build_type == 'test'
+        if: inputs.build_type != 'release'
         run: ./gradlew assembleDebug
 
       - name: Build release APK
