@@ -47,7 +47,8 @@ internal sealed interface ReaderItem {
         override val chapterItemPosition: Int,
         override val text: String,
         override val location: Location,
-        override val textTranslated: String? = null
+        override val textTranslated: String? = null,
+        val footnotes: Map<String, String> = emptyMap()
     ) : ReaderItem, Text, Position, ParagraphLocation
 
     data class Image(
