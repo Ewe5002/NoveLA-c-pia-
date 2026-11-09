@@ -16,6 +16,7 @@ import androidx.annotation.StringRes
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,10 +33,12 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -57,6 +60,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import my.noveldokusha.coreui.BaseActivity
+import my.noveldokusha.coreui.R as CoreUiR
 import my.noveldokusha.tooling.application_workers.setup.PeriodicWorkersInitializer
 import my.noveldokusha.coreui.theme.AppTheme
 import my.noveldokusha.coreui.theme.DarkMode
@@ -71,6 +75,7 @@ import my.noveldokusha.historyexplorer.HistoryScreen
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.zIndex
+import kotlinx.coroutines.delay
 
 private data class Page(
     @DrawableRes val iconRes: Int,
@@ -103,7 +108,8 @@ open class MainActivity : BaseActivity() {
     ) { }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        if (isColdStart) {
+        val showStartupLoading = isColdStart
+        if (showStartupLoading) {
             installSplashScreen()
             isColdStart = false
         }
@@ -122,6 +128,13 @@ open class MainActivity : BaseActivity() {
 
         setContent {
             var activePageIndex by rememberSaveable { mutableIntStateOf(0) }
+            var showStartupOverlay by remember { mutableStateOf(showStartupLoading) }
+            LaunchedEffect(showStartupLoading) {
+                if (showStartupLoading) {
+                    delay(850)
+                    showStartupOverlay = false
+                }
+            }
 
             BackHandler(enabled = activePageIndex != 0) {
                 activePageIndex = 0
@@ -215,6 +228,31 @@ open class MainActivity : BaseActivity() {
                                     recreate()
                                 }
                             )
+                        }
+                    }
+
+                    if (showStartupOverlay) {
+                        androidx.compose.material3.Surface(
+                            modifier = Modifier.fillMaxSize().zIndex(10f),
+                            color = MaterialTheme.colorScheme.background
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxSize().padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Image(
+                                    painter = painterResource(id = CoreUiR.drawable.ic_logo),
+                                    contentDescription = "LNovel",
+                                    modifier = Modifier.size(112.dp)
+                                )
+                                Spacer(modifier = Modifier.height(28.dp))
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(30.dp),
+                                    strokeWidth = 3.dp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
                     }
 
