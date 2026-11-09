@@ -153,7 +153,7 @@ internal class ReaderSession(
         manualTranslationLanguagePair = readerLiveTranslation::manualTranslationLanguagePair,
         manualBatchTranslate = readerLiveTranslation::translateBatchManually,
         manualTitleTranslate = { title, source, target ->
-            translationManager.translateTitle(title, source, target)
+            readerLiveTranslation.translateTitleManually(title, source, target)
         },
     ).also {
         readerLiveTranslation.state.onManualTranslateBook = {
