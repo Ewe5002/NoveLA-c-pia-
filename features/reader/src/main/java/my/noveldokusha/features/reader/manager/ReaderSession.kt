@@ -156,10 +156,9 @@ internal class ReaderSession(
             translationManager.translateTitle(title, source, target)
         },
     ).also {
-        readerLiveTranslation.state.onManualTranslateBook = { onProgress ->
+        readerLiveTranslation.state.onManualTranslateBook = {
             it.translateBookManually { status ->
                 readerLiveTranslation.state.manualTranslationStatus.value = status
-                onProgress(status)
             }
         }
     }
