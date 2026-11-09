@@ -135,15 +135,9 @@ internal fun decodeEnabledMap(raw: String): Map<String, Boolean> =
         result
     } catch (_: Exception) { emptyMap() }
 
-// Включение перевода — три независимых уровня, каждый лишь «соглашается»
-// переводить, но НЕ запрещает остальным:
-//   1) пер-новел (TRANSLATION_BOOK_ENABLED_MAP[bookUrl] == true);
-//   2) пер-плагин (TRANSLATION_PLUGIN_ENABLED_MAP[sourceId] == true, только с известным sourceId);
-//   3) глобальный (активен глобальный режим И включён глобальный перевод).
-// Перевод ВКЛЮЧЁН, если согласен хотя бы один уровень (OR). Выключение какого-то
-// уровня не отменяет перевод от остальных — например, выключение книги не гасит
-// включённый плагин или глобальный перевод, и наоборот. Приоритет уровней применяется
-// только к выбору пары/провайдера (см. resolveTranslationPair), но не к включению.
+// Явная настройка конкретной книги имеет приоритет над настройками расширения
+// и глобальным режимом: true включает перевод, false полностью отключает его.
+// Если для книги записи нет, используются настройки плагина и приложения.
 fun resolveTranslationEnabled(
     globalMode: Boolean,
     globalEnabled: Boolean,
@@ -152,10 +146,13 @@ fun resolveTranslationEnabled(
     bookUrl: String,
     sourceId: String?,
 ): Boolean {
-    val perNovel = enabledMap[bookUrl] == true
+    // Наличие ключа означает явный выбор пользователя для этой книги.
+    // false должен блокировать перевод даже при включённом плагине/глобальном режиме.
+    if (enabledMap.containsKey(bookUrl)) return enabledMap[bookUrl] == true
+
     val plugin = sourceId != null && pluginMap[sourceId] == true
     val global = globalMode && globalEnabled
-    return perNovel || plugin || global
+    return plugin || global
 }
 
 // Прежняя сигнатура без plugin-уровня: sourceId=null, каскад пропускает плагин.
