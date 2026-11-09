@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - release/lnovel-1.6.3
+      - feature/auto-translate-book-description
   workflow_dispatch:
     inputs:
       build_type:
