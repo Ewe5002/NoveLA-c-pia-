@@ -146,11 +146,12 @@ fun resolveTranslationEnabled(
     bookUrl: String,
     sourceId: String?,
 ): Boolean {
-    // Наличие ключа означает явный выбор пользователя для этой книги.
-    // false должен блокировать перевод даже при включённом плагине/глобальном режиме.
-    if (enabledMap.containsKey(bookUrl)) return enabledMap[bookUrl] == true
+    // Явное включение книги всегда разрешает перевод.
+    if (enabledMap[bookUrl] == true) return true
 
-    val plugin = sourceId != null && pluginMap[sourceId] == true
+    // Явное выключение книги запрещает перевод через её плагин,
+    // но не отменяет режим global, que é uma configuração independente do app.
+    val plugin = !enabledMap.containsKey(bookUrl) && sourceId != null && pluginMap[sourceId] == true
     val global = globalMode && globalEnabled
     return plugin || global
 }
