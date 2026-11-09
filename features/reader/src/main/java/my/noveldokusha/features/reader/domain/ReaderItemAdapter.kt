@@ -314,16 +314,18 @@ internal class ReaderItemAdapter(
 
     private fun applyFootnoteLinks(textView: TextView, item: ReaderItem.Body) {
         if (item.footnotes.isEmpty()) {
-            textView.movementMethod = null
+            if (!currentTextSelectability()) textView.movementMethod = null
             return
         }
         val visibleText = textView.text.toString()
         val linked = SpannableString(textView.text)
+        var cursor = 0
+        var applied = 0
         item.footnotes.forEach { note ->
-            // Prefer matching the visible label so translated paragraphs can retain
-            // their footnote links even when the translated sentence has a new length.
-            val start = visibleText.indexOf(note.label).takeIf { it >= 0 }
-                ?: note.start.takeIf { visibleText == item.text }
+            // Match the visible label so translated paragraphs can retain links
+            // even when translation changes the sentence length.
+            val start = visibleText.indexOf(note.label, cursor).takeIf { it >= 0 }
+                ?: note.start.takeIf { visibleText == item.text && it >= cursor }
                 ?: return@forEach
             val end = (start + note.label.length).coerceAtMost(visibleText.length)
             if (start < end) {
@@ -331,12 +333,15 @@ internal class ReaderItemAdapter(
                     override fun onClick(widget: View) { onFootnoteClick(note.content) }
                     override fun updateDrawState(ds: TextPaint) {
                         ds.color = textView.currentTextColor
-                        ds.isUnderlineText = false
+                        ds.isUnderlineText = true
                         ds.isFakeBoldText = true
                     }
                 }, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                cursor = end
+                applied++
             }
         }
+        if (applied == 0) return
         textView.text = linked
         textView.movementMethod = LinkMovementMethod.getInstance()
         textView.highlightColor = android.graphics.Color.TRANSPARENT
