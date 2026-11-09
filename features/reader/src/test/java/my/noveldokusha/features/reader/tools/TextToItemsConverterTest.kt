@@ -112,5 +112,23 @@ class TextToItemsConverterTest {
             ),
             bodies.map { it.text }
         )
+    } 
+    @Test
+    fun footnoteReference_resolvesMatchingNoteAndPreservesVisibleLabel() = runTest {
+        val html = """<p>The answer is <a href="#fn1">[1]</a>.</p><ol class="footnotes"><li id="fn1">A note with <b>useful context</b>.</li></ol>"""
+        val bodies = convertToBodies(html)
+        assertEquals(1, bodies.size)
+        assertEquals("The answer is [1].", bodies.single().text)
+        assertEquals(1, bodies.single().footnotes.size)
+        assertEquals("A note with useful context.", bodies.single().footnotes.single().content)
+        assertEquals(14, bodies.single().footnotes.single().start)
     }
+
+    @Test
+    fun internalSectionLink_isNotTreatedAsFootnote() = runTest {
+        val html = """<p>Go to <a href="#chapter-two">chapter two</a>.</p><h2 id="chapter-two">Chapter two</h2>"""
+        val bodies = convertToBodies(html)
+        assertTrue(bodies.all { it.footnotes.isEmpty() })
+    }
+
 }
