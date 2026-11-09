@@ -64,6 +64,8 @@ internal data class LiveTranslationSettingData(
     val recentPairs: SnapshotStateList<TranslationLangPair> = mutableStateListOf(),
     val onApplyRecentPair: (source: String, target: String) -> Unit = { _, _ -> },
     val onRemovePair: (TranslationLangPair) -> Unit = {},
+    val manualTranslationStatus: MutableState<String?> = mutableStateOf(null),
+    var onManualTranslateBook: () -> Unit = {},
 )
 
 /**
@@ -575,6 +577,24 @@ internal class ReaderLiveTranslation(
      * For online providers (Gemini/OpenAI), null means init() hasn't completed yet —
      * ReaderChaptersLoader will throw an error instead of falling back to per-paragraph.
      */
+    fun manualTranslationLanguagePair(): Pair<String, String>? {
+        val pair = translationSettingsResolver.translationPairForBook(bookUrl)
+        if (pair.source.isBlank() || pair.target.isBlank() || pair.source == pair.target) return null
+        return pair.source to pair.target
+    }
+
+    suspend fun translateBatchManually(texts: List<String>): Map<String, String> {
+        val pair = manualTranslationLanguagePair()
+            ?: throw IllegalStateException("Selecione os idiomas de origem e destino antes de traduzir.")
+        return translationManager.translateBatch(
+            texts = texts,
+            source = pair.first,
+            target = pair.second,
+            systemPromptOverride = resolveSystemPromptOverride(),
+            provider = state.currentProvider.value,
+        )
+    }
+
     fun getBatchTranslator(): (suspend (List<String>) -> Map<String, String>)? {
         if (!translationManager.isUsingOnlineTranslation) {
             Timber.d("getBatchTranslator: offline provider (MLKit), batch not available")
