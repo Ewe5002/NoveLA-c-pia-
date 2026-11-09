@@ -41,13 +41,16 @@ internal sealed interface ReaderItem {
         override val textTranslated: String? = null
     ) : ReaderItem, Text, Position
 
+    data class FootnoteReference(val start: Int, val end: Int, val content: String)
+
     data class Body(
         override val chapterUrl: String,
         override val chapterIndex: Int,
         override val chapterItemPosition: Int,
         override val text: String,
         override val location: Location,
-        override val textTranslated: String? = null
+        override val textTranslated: String? = null,
+        val footnotes: List<FootnoteReference> = emptyList()
     ) : ReaderItem, Text, Position, ParagraphLocation
 
     data class Image(
