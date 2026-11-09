@@ -16,10 +16,9 @@ import org.robolectric.annotation.Config
  * Тесты трёхуровневой резолюции перевода:
  *   per-novel → per-plugin → global.
  *
- * ВКЛЮЧЕНИЕ перевода — три независимых уровня (OR): перевод идёт, если согласен
- * хотя бы один (perNovel || включённый плагин || глобальный режим И глобальный
- * включён). Выключение уровня НЕ блокирует остальные: выключенная книга не гасит
- * включённый плагин или глобальный перевод, и наоборот.
+ * Явная настройка книги имеет приоритет: true включает, false отключает перевод
+ * независимо от плагина и глобального режима. Если настройки книги нет, действует
+ * каскад плагин → глобальный режим.
  *
  * ПАРА/провайдер — приоритет сверху вниз (самая специфичная настройка побеждает):
  *   1. пер-новел пара (book-карта);
@@ -65,9 +64,8 @@ class TranslationPluginCascadeTest {
                 bookUrl = "book", sourceId = "lua_demo",
             )
         )
-        // book-ключ = false (выключение книги) НЕ гасит другие уровни (OR):
-        // включённые глобал и плагин продолжают переводить.
-        assertTrue(
+        // Явный false для книги блокирует включённый глобальный режим и плагин.
+        assertFalse(
             resolveTranslationEnabled(
                 globalMode = true, globalEnabled = true,
                 enabledMap = mapOf("book" to false), pluginMap = mapOf("lua_demo" to true),
@@ -91,13 +89,12 @@ class TranslationPluginCascadeTest {
     }
 
     @Test
-    fun `enabled - book key disabled does not cancel plugin enabled`() {
-        // Выключенная книга (ключ false) НЕ отменяет включённый плагин (OR):
-        // перевод идёт за счёт плагина.
+    fun `enabled - explicit book disable overrides plugin enabled`() {
+        // Явный запрет для книги имеет приоритет над настройкой плагина.
         val enabledMap = mapOf("book" to false)
         val pluginMap = mapOf("lua_demo" to true)
 
-        assertTrue(
+        assertFalse(
             resolveTranslationEnabled(
                 globalMode = false, globalEnabled = false,
                 enabledMap = enabledMap, pluginMap = pluginMap,
