@@ -135,10 +135,16 @@ private fun extractChapterFootnotes(source: String): ParsedChapterContent {
         val body = document.body()
         val tokens = linkedMapOf<String, String>()
         val targetsToRemove = linkedSetOf<org.jsoup.nodes.Element>()
-        body.select("a[href^=#]").toList().forEachIndexed { index, anchor ->
+        body.select("a[href]").filter { it.attr("href").startsWith("#") }.toList().forEachIndexed { index, anchor ->
             val targetId = anchor.attr("href").removePrefix("#").trim()
             if (targetId.isBlank()) return@forEachIndexed
             val target = document.getElementById(targetId) ?: return@forEachIndexed
+            if (target.tagName().equals("a", ignoreCase = true)) return@forEachIndexed
+            val idOrClass = (target.id() + " " + target.classNames().joinToString(" ")).lowercase()
+            val isFootnote = idOrClass.contains("fn") || idOrClass.contains("footnote") ||
+                idOrClass.contains("endnote") || idOrClass.contains("note") ||
+                target.attr("role").contains("doc-footnote", ignoreCase = true)
+            if (!isFootnote) return@forEachIndexed
             val note = target.text().trim()
             if (note.isBlank()) return@forEachIndexed
             val label = anchor.text().trim().ifBlank { "[${index + 1}]" }
