@@ -583,6 +583,9 @@ internal class ReaderLiveTranslation(
         return pair.source to pair.target
     }
 
+    suspend fun translateTitleManually(title: String, source: String, target: String): String? =
+        translationManager.translateTitle(title, source, target, state.currentProvider.value)
+
     suspend fun translateBatchManually(texts: List<String>): Map<String, String> {
         val pair = manualTranslationLanguagePair()
             ?: throw IllegalStateException("Selecione os idiomas de origem e destino antes de traduzir.")
