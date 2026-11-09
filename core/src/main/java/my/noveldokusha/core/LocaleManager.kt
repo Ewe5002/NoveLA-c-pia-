@@ -17,9 +17,36 @@ object LocaleManager {
         val prefs = context.getSharedPreferences(
             context.packageName + "_preferences", Context.MODE_PRIVATE
         )
-        val code = prefs.getString("APP_LANGUAGE_CODE", "pt") ?: "pt"
-        val language = AppLanguageProvider.fromCode(code)
-            ?: AppLanguageProvider.supportedLanguages.first()
+        // Na primeira instalação, adota o idioma do Android quando disponível.
+        // Depois disso, respeita a escolha manual ou a opção "Seguir sistema".
+        if (!prefs.getBoolean("IS_FIRST_LAUNCH_DONE", false)) {
+            val systemLocale = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                context.resources.configuration.locales[0]
+            } else {
+                @Suppress("DEPRECATION")
+                context.resources.configuration.locale
+            }
+            val detected = AppLanguageProvider.fromLocale(systemLocale)
+            prefs.edit()
+                .putString("APP_LANGUAGE_CODE", detected.code)
+                .putBoolean("IS_FOLLOW_SYSTEM_LANGUAGE", true)
+                .putBoolean("IS_FIRST_LAUNCH_DONE", true)
+                .apply()
+        }
+
+        val followsSystem = prefs.getBoolean("IS_FOLLOW_SYSTEM_LANGUAGE", false)
+        val language = if (followsSystem) {
+            val systemLocale = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                context.resources.configuration.locales[0]
+            } else {
+                @Suppress("DEPRECATION")
+                context.resources.configuration.locale
+            }
+            AppLanguageProvider.fromLocale(systemLocale)
+        } else {
+            val code = prefs.getString("APP_LANGUAGE_CODE", "pt") ?: "pt"
+            AppLanguageProvider.fromCode(code) ?: AppLanguage.PORTUGUESE
+        }
         return createLocaleContext(context, language)
     }
 
