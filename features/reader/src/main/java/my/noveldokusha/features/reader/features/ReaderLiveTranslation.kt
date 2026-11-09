@@ -587,11 +587,11 @@ internal class ReaderLiveTranslation(
         val pair = manualTranslationLanguagePair()
             ?: throw IllegalStateException("Selecione os idiomas de origem e destino antes de traduzir.")
         return translationManager.translateBatch(
-            texts = texts,
-            source = pair.first,
-            target = pair.second,
-            systemPromptOverride = resolveSystemPromptOverride(),
-            provider = state.currentProvider.value,
+            texts,
+            pair.first,
+            pair.second,
+            resolveSystemPromptOverride(),
+            state.currentProvider.value,
         )
     }
 
