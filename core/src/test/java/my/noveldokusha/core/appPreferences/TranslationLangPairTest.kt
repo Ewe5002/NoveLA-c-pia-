@@ -82,14 +82,14 @@ class TranslationLangPairTest {
     }
 
     @Test
-    fun `per-novel toggle does not block global mode (OR)`() {
+    fun `explicit per-novel opt-out blocks global mode`() {
         val enabledMap = mapOf("a" to false)
 
-        // OR-семантика: выключенный пер-новел НЕ гасит глобальный перевод (глобал = true).
-        assertTrue(resolveTranslationEnabled(true, globalEnabled = true, enabledMap = enabledMap, bookUrl = "a"))
+        // Явное выключение этой книги должно impedir tradução mesmo com o modo global ativo.
+        assertFalse(resolveTranslationEnabled(true, globalEnabled = true, enabledMap = enabledMap, bookUrl = "a"))
         // Включённая книга переводится и при выключенном глобальном режиме.
         assertTrue(resolveTranslationEnabled(false, globalEnabled = false, enabledMap = mapOf("a" to true), bookUrl = "a"))
-        // Глобальный режим действует только там, где книга явно не управляется.
+        // Глобальный режим действует para livros sem configuração individual.
         assertFalse(resolveTranslationEnabled(true, globalEnabled = false, enabledMap = emptyMap(), bookUrl = "a"))
         // Глобальная пара действует для книги с выключенным пер-новел.
         assertEquals(
