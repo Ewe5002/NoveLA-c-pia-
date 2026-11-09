@@ -317,7 +317,7 @@ internal class ReaderItemAdapter(
             textView.movementMethod = null
             return
         }
-        val linked = SpannableString(item.text)
+        val linked = SpannableString(textView.text)
         item.footnotes.forEach { note ->
             if (note.start >= 0 && note.end <= item.text.length && note.start < note.end) {
                 linked.setSpan(object : ClickableSpan() {
