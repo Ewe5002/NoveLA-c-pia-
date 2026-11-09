@@ -26,7 +26,8 @@ internal suspend fun textToItemsConverter(
 
     val items = mutableListOf<ReaderItem>()
     var itemPosition = chapterItemPositionDisplacement
-    var remaining = text
+    val parsedContent = extractChapterFootnotes(text)
+    var remaining = parsedContent.text
     var imgMatchCount = 0
 
     while (true) {
@@ -41,7 +42,8 @@ internal suspend fun textToItemsConverter(
                 chapterIndex = chapterIndex,
                 startPosition = itemPosition,
                 userRegexRules = userRegexRules,
-                sentenceSplittingEnabled = sentenceSplittingEnabled
+                sentenceSplittingEnabled = sentenceSplittingEnabled,
+                footnoteTokens = parsedContent.tokens
             )
             items.addAll(bodyItems)
             itemPosition += bodyItems.size
@@ -75,7 +77,8 @@ internal suspend fun textToItemsConverter(
             chapterIndex = chapterIndex,
             startPosition = itemPosition,
             userRegexRules = userRegexRules,
-            sentenceSplittingEnabled = sentenceSplittingEnabled
+            sentenceSplittingEnabled = sentenceSplittingEnabled,
+            footnoteTokens = parsedContent.tokens
         )
         items.addAll(bodyItems)
     }
@@ -123,13 +126,40 @@ private fun extractImgTag(text: String): Pair<String, Float>? {
     }
 }
 
+private data class ParsedChapterContent(val text: String, val tokens: Map<String, String>)
+
+private fun extractChapterFootnotes(source: String): ParsedChapterContent {
+    if (!source.contains("<a", ignoreCase = true)) return ParsedChapterContent(source, emptyMap())
+    return runCatching {
+        val document = Jsoup.parseBodyFragment(source)
+        val body = document.body()
+        val tokens = linkedMapOf<String, String>()
+        val targetsToRemove = linkedSetOf<org.jsoup.nodes.Element>()
+        body.select("a[href^=#]").toList().forEachIndexed { index, anchor ->
+            val targetId = anchor.attr("href").removePrefix("#").trim()
+            if (targetId.isBlank()) return@forEachIndexed
+            val target = document.getElementById(targetId) ?: return@forEachIndexed
+            val note = target.text().trim()
+            if (note.isBlank()) return@forEachIndexed
+            val label = anchor.text().trim().ifBlank { "[${index + 1}]" }
+            val token = "__LNV_FOOTNOTE_${tokens.size}__"
+            tokens[token] = "$label\u0000$note"
+            anchor.replaceWith(org.jsoup.nodes.TextNode(token))
+            targetsToRemove.add(target)
+        }
+        targetsToRemove.forEach { it.remove() }
+        ParsedChapterContent(body.html(), tokens)
+    }.getOrElse { ParsedChapterContent(source, emptyMap()) }
+}
+
 private fun buildBodyItems(
     text: String,
     chapterUrl: String,
     chapterIndex: Int,
     startPosition: Int,
     userRegexRules: List<RegexRule>,
-    sentenceSplittingEnabled: Boolean = false
+    sentenceSplittingEnabled: Boolean = false,
+    footnoteTokens: Map<String, String> = emptyMap()
 ): List<ReaderItem.Body> {
     val cleanText = text
         .replace(STRIP_HTML_TAGS, "")
@@ -146,12 +176,28 @@ private fun buildBodyItems(
     return paragraphs.mapIndexedNotNull { i, para ->
         val trimmed = para.trim()
         if (trimmed.isBlank()) return@mapIndexedNotNull null
+        var visibleText = trimmed
+        val references = mutableListOf<ReaderItem.FootnoteReference>()
+        footnoteTokens.forEach { (token, payload) ->
+            val separator = payload.indexOf('\u0000')
+            val label = payload.substring(0, separator)
+            val note = payload.substring(separator + 1)
+            var from = 0
+            while (true) {
+                val found = visibleText.indexOf(token, from)
+                if (found < 0) break
+                visibleText = visibleText.replaceRange(found, found + token.length, label)
+                references.add(ReaderItem.FootnoteReference(found, found + label.length, note))
+                from = found + label.length
+            }
+        }
         ReaderItem.Body(
             chapterUrl = chapterUrl,
             chapterIndex = chapterIndex,
             chapterItemPosition = startPosition + i,
-            text = trimmed,
-            location = ReaderItem.Location.MIDDLE
+            text = visibleText,
+            location = ReaderItem.Location.MIDDLE,
+            footnotes = references.sortedBy { it.start }
         )
     }
 }
