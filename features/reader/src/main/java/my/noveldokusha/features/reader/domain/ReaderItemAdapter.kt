@@ -13,6 +13,9 @@ import android.text.Layout
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.SpannableStringBuilder
+import android.text.method.LinkMovementMethod
+import android.text.style.ClickableSpan
+import android.text.TextPaint
 import android.text.Spanned
 import android.text.style.LeadingMarginSpan
 import android.text.style.RelativeSizeSpan
@@ -23,6 +26,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.TextView
+import android.widget.ScrollView
 import androidx.appcompat.content.res.AppCompatResources
 import timber.log.Timber
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -174,6 +178,42 @@ internal class ReaderItemAdapter(
         return bind.root
     }
 
+    private fun withFootnoteLinks(text: CharSequence, footnotes: Map<String, String>): CharSequence {
+        if (footnotes.isEmpty() || !text.contains("⟦LNFOOTNOTE:")) return text
+        val result = SpannableStringBuilder(text)
+        val marker = Regex("⟦LNFOOTNOTE:([^|⟧]+)\\|([^⟧]+)⟧")
+        marker.findAll(result).toList().asReversed().forEach { match ->
+            val noteId = match.groupValues[1]
+            val label = match.groupValues[2]
+            val note = footnotes[noteId] ?: return@forEach
+            val start = match.range.first
+            val end = match.range.last + 1
+            result.replace(start, end, "[$label]")
+            result.setSpan(object : ClickableSpan() {
+                override fun onClick(widget: View) {
+                    val noteView = TextView(ctx).apply {
+                        text = note
+                        textSize = 16f
+                        setTextIsSelectable(true)
+                        setPadding(24, 20, 24, 20)
+                    }
+                    val scroll = ScrollView(ctx).apply { addView(noteView) }
+                    android.app.AlertDialog.Builder(ctx)
+                        .setTitle("Nota de rodapé")
+                        .setView(scroll)
+                        .setPositiveButton(android.R.string.ok, null)
+                        .show()
+                }
+
+                override fun updateDrawState(ds: TextPaint) {
+                    super.updateDrawState(ds)
+                    ds.isUnderlineText = true
+                }
+            }, start, start + label.length + 2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+        return result
+    }
+
     private fun viewBody(item: ReaderItem.Body, convertView: View?, parent: ViewGroup): View {
         val bind = when (convertView) {
             null -> ActivityReaderListItemBodyBinding.inflate(parent.inflater, parent, false).also { it.root.tag = it }
@@ -244,7 +284,8 @@ internal class ReaderItemAdapter(
                 primaryText
             }
 
-            bind.bodyTranslated.text = displayPrimary
+            bind.bodyTranslated.text = withFootnoteLinks(displayPrimary, item.footnotes)
+            bind.bodyTranslated.movementMethod = LinkMovementMethod.getInstance()
             bind.bodyTranslated.textSize = currentFontSize()
             applyBodyFormatting(bind.bodyTranslated)
             bind.bodyTranslated.updateTextSelectability()
@@ -252,7 +293,8 @@ internal class ReaderItemAdapter(
             bind.bodyTranslated.letterSpacing = currentLetterSpacing()
             applyTextColor(bind.bodyTranslated, currentTextColor())
 
-            bind.bodyOriginal.text = secondaryText
+            bind.bodyOriginal.text = withFootnoteLinks(secondaryText, item.footnotes)
+            bind.bodyOriginal.movementMethod = LinkMovementMethod.getInstance()
             bind.bodyOriginal.textSize = currentFontSize() * 0.85f
             applyBodyFormatting(bind.bodyOriginal)
             bind.bodyOriginal.updateTextSelectability()
@@ -267,7 +309,8 @@ internal class ReaderItemAdapter(
                 item.textToDisplay
             }
 
-            bind.bodyTranslated.text = displayText
+            bind.bodyTranslated.text = withFootnoteLinks(displayText, item.footnotes)
+            bind.bodyTranslated.movementMethod = LinkMovementMethod.getInstance()
             bind.bodyTranslated.textSize = currentFontSize()
             applyBodyFormatting(bind.bodyTranslated)
             bind.bodyTranslated.updateTextSelectability()
