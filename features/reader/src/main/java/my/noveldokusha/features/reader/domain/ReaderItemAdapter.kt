@@ -257,7 +257,7 @@ internal class ReaderItemAdapter(
             bind.bodyTranslated.textSize = currentFontSize()
             applyBodyFormatting(bind.bodyTranslated)
             bind.bodyTranslated.updateTextSelectability(paragraphClick)
-            if (primaryText == item.text) applyFootnoteLinks(bind.bodyTranslated, item)
+            applyFootnoteLinks(bind.bodyTranslated, item)
             bind.bodyTranslated.setLineSpacing(0f, currentLineHeight())
             bind.bodyTranslated.letterSpacing = currentLetterSpacing()
             applyTextColor(bind.bodyTranslated, currentTextColor())
@@ -266,7 +266,7 @@ internal class ReaderItemAdapter(
             bind.bodyOriginal.textSize = currentFontSize() * 0.85f
             applyBodyFormatting(bind.bodyOriginal)
             bind.bodyOriginal.updateTextSelectability(paragraphClick)
-            if (secondaryText == item.text) applyFootnoteLinks(bind.bodyOriginal, item)
+            applyFootnoteLinks(bind.bodyOriginal, item)
             bind.bodyOriginal.setLineSpacing(0f, currentLineHeight())
             bind.bodyOriginal.letterSpacing = currentLetterSpacing()
             applyTextColor(bind.bodyOriginal, currentTextColor())
@@ -282,7 +282,7 @@ internal class ReaderItemAdapter(
             bind.bodyTranslated.textSize = currentFontSize()
             applyBodyFormatting(bind.bodyTranslated)
             bind.bodyTranslated.updateTextSelectability(paragraphClick)
-            if (item.textToDisplay == item.text) applyFootnoteLinks(bind.bodyTranslated, item)
+            applyFootnoteLinks(bind.bodyTranslated, item)
             bind.bodyTranslated.setLineSpacing(0f, currentLineHeight())
             bind.bodyTranslated.letterSpacing = currentLetterSpacing()
             applyTextColor(bind.bodyTranslated, currentTextColor())
@@ -317,9 +317,16 @@ internal class ReaderItemAdapter(
             textView.movementMethod = null
             return
         }
+        val visibleText = textView.text.toString()
         val linked = SpannableString(textView.text)
         item.footnotes.forEach { note ->
-            if (note.start >= 0 && note.end <= item.text.length && note.start < note.end) {
+            // Prefer matching the visible label so translated paragraphs can retain
+            // their footnote links even when the translated sentence has a new length.
+            val start = visibleText.indexOf(note.label).takeIf { it >= 0 }
+                ?: note.start.takeIf { visibleText == item.text }
+                ?: return@forEach
+            val end = (start + note.label.length).coerceAtMost(visibleText.length)
+            if (start < end) {
                 linked.setSpan(object : ClickableSpan() {
                     override fun onClick(widget: View) { onFootnoteClick(note.content) }
                     override fun updateDrawState(ds: TextPaint) {
@@ -327,7 +334,7 @@ internal class ReaderItemAdapter(
                         ds.isUnderlineText = false
                         ds.isFakeBoldText = true
                     }
-                }, note.start, note.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                }, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             }
         }
         textView.text = linked
