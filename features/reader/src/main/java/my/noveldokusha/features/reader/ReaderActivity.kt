@@ -234,14 +234,8 @@ class ReaderActivity : BaseActivity() {
                 currentManualHighlightColor = { appPreferences.MANUAL_HIGHLIGHT_COLOR.value },
                 currentManualHighlightOpacity = { appPreferences.MANUAL_HIGHLIGHT_OPACITY.value },
                 currentMarkerActive = { appPreferences.MANUAL_HIGHLIGHT_ACTIVE.value },
-                onMarkerParagraphClick = { item: my.noveldokusha.features.reader.domain.ReaderItem.Body ->
-                    val index: Int = indexOfReaderItem(
-                        viewModel.items, item.chapterIndex, item.chapterItemPosition
-                    )
-                    if (index >= 0) {
-                        viewModel.toggleManualHighlightAt(index)
-                        viewAdapter.listView.notifyDataSetChanged()
-                    }
+                onMarkerParagraphClick = { item: ReaderItem.Body ->
+                    onManualHighlightParagraphClick(item)
                 },
                 currentTextJustify = { appPreferences.READER_TEXT_JUSTIFY.value },
                 currentTextHyphenation = { appPreferences.READER_TEXT_HYPHENATION.value },
@@ -257,6 +251,18 @@ class ReaderActivity : BaseActivity() {
                 currentMarginTop = { appPreferences.READER_MARGIN_TOP.value },
                 currentMarginBottom = { appPreferences.READER_MARGIN_BOTTOM.value },
             )
+        }
+    }
+
+    private fun onManualHighlightParagraphClick(item: ReaderItem.Body) {
+        val index: Int = indexOfReaderItem(
+            list = viewModel.items,
+            chapterIndex = item.chapterIndex,
+            chapterItemPosition = item.chapterItemPosition
+        )
+        if (index >= 0) {
+            viewModel.toggleManualHighlightAt(index)
+            viewAdapter.listView.notifyDataSetChanged()
         }
     }
 
