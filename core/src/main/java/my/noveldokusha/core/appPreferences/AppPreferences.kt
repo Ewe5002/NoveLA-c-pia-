@@ -1152,20 +1152,13 @@ class AppPreferences @Inject constructor(
         GLOBAL_TRANSLATION_PREFERRED_TARGET.value = target
     }
 
-    // Включает/выключает перевод конкретной новеллы.
-    // Включает/выключает перевод конкретной новеллы. Запись адаптивна к режиму:
-    // в глобальном режиме тумблер книги управляет глобальным включением
-    // (GLOBAL_TRANSLATION_ENABLED — единый переключатель для всех новелл, как в default);
-    // вне глобального режима — per-novel картой (TRANSLATION_BOOK_ENABLED_MAP).
-    // Выключение (false) УДАЛЯЕТ ключ, т.е. «сбрасывает к наследованию», а не блокирует:
-    // тогда включённый плагин или глобальная настройка могут снова включить перевод.
+    // Define uma exceção explícita por obra, independente do modo global.
+    // true força a tradução nesta obra; false impede a tradução mesmo quando
+    // a tradução global ou a extensão estiver ativada. A ausência da chave herda.
     fun setTranslationEnabledForBook(bookUrl: String, enabled: Boolean) {
-        if (TRANSLATION_GLOBAL_MODE.value) {
-            GLOBAL_TRANSLATION_ENABLED.value = enabled
-            return
-        }
+        if (bookUrl.isBlank()) return
         val current = TRANSLATION_BOOK_ENABLED_MAP.value.toMutableMap()
-        if (enabled) current[bookUrl] = true else current.remove(bookUrl)
+        current[bookUrl] = enabled
         TRANSLATION_BOOK_ENABLED_MAP.value = current
     }
 
