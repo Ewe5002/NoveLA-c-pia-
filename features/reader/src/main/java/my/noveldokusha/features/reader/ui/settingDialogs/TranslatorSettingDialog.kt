@@ -28,6 +28,8 @@ import androidx.compose.material.icons.outlined.ViewColumn
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilterChip
@@ -75,6 +77,7 @@ internal fun TranslatorSettingDialog(
     ) {
         val scrollState = rememberScrollState()
         val isScrolling by remember { derivedStateOf { scrollState.isScrollInProgress } }
+        var showManualTranslateConfirm by rememberSaveable { mutableStateOf(false) }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -82,6 +85,21 @@ internal fun TranslatorSettingDialog(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            // Manual whole-book translation is explicit and does not enable live translation.
+            Button(
+                onClick = { showManualTranslateConfirm = true },
+                enabled = !isScrolling && state.manualTranslationStatus.value?.startsWith("Traduzindo obra:") != true,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Traduzir obra manualmente")
+            }
+            Text(
+                text = state.manualTranslationStatus.value
+                    ?: "Traduz somente esta obra e salva os capítulos traduzidos; não ativa a tradução automática.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
             // ── Toggle + режим применения ────────────────────────────────────
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -200,6 +218,25 @@ internal fun TranslatorSettingDialog(
 
             // ── Novel prompt (LLM only) ────────────────────────────────
             NovelPromptSection(state = state, isScrolling = isScrolling)
+        }
+        if (showManualTranslateConfirm) {
+            AlertDialog(
+                onDismissRequest = { showManualTranslateConfirm = false },
+                title = { Text("Traduzir a obra inteira?") },
+                text = {
+                    Text("O LNOVEL vai percorrer os capítulos desta obra, traduzir os textos ainda não salvos e guardar os resultados no cache. Isso pode consumir dados, tempo e créditos da API. A tradução automática continuará com o estado atual.")
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showManualTranslateConfirm = false
+                        state.manualTranslationStatus.value = "Preparando tradução manual…"
+                        state.onManualTranslateBook()
+                    }) { Text("Iniciar tradução") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showManualTranslateConfirm = false }) { Text("Cancelar") }
+                },
+            )
         }
     }
 }
