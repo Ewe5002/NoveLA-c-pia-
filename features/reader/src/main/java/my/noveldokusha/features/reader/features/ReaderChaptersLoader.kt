@@ -59,6 +59,9 @@ internal class ReaderChaptersLoader(
     private val chapterTranslationDao: ChapterTranslationDao,
     private val regexRulesProvider: () -> List<my.noveldokusha.core.models.RegexRule> = { emptyList() },
     private val sentenceSplittingEnabledProvider: () -> Boolean = { false },
+    private val manualTranslationLanguagePair: () -> Pair<String, String>? = { null },
+    private val manualBatchTranslate: suspend (List<String>) -> Map<String, String> = { emptyMap() },
+    private val manualTitleTranslate: suspend (String, String, String) -> String? = { _, _, _ -> null },
 ) : CoroutineScope {
     override val coroutineContext: CoroutineContext = SupervisorJob() + Dispatchers.Main.immediate
 
@@ -160,6 +163,95 @@ internal class ReaderChaptersLoader(
     fun isChapterIndexValid(chapterIndex: Int) = chapterIndex in 0 until orderedChapters.size
     fun isChapterContentReady(chapterIndex: Int): Boolean =
         items.any { it is ReaderItem.Body && it.chapterIndex == chapterIndex }
+
+    /**
+     * Explicit, user-started translation of every chapter in this book.
+     * It writes to the existing chapter translation cache and does not change
+     * the live-translation preference for the reader.
+     */
+    fun translateBookManually(onProgress: (String) -> Unit = {}) {
+        launch {
+            val pair = manualTranslationLanguagePair()
+            if (pair == null) {
+                onProgress("Selecione os idiomas de origem e destino primeiro.")
+                return@launch
+            }
+            val (sourceLang, targetLang) = pair
+            var completed = 0
+            var skipped = 0
+            try {
+                orderedChapters.forEachIndexed { index, chapter ->
+                    val existing = withContext(Dispatchers.IO) {
+                        chapterTranslationDao.getTranslations(chapter.url, sourceLang, targetLang)
+                    }
+                    val response = readerRepository.downloadChapter(chapter.url)
+                    if (response !is Response.Success || chapterContentIssue(response.data) != null) {
+                        skipped++
+                        onProgress("Capítulo ${index + 1}/${orderedChapters.size}: falha ao carregar (ignorados: $skipped)")
+                        return@forEachIndexed
+                    }
+
+                    val originalItems = textToItemsConverter(
+                        chapterUrl = chapter.url,
+                        chapterIndex = index,
+                        chapterItemPositionDisplacement = 1,
+                        text = response.data,
+                        userRegexRules = regexRulesProvider(),
+                        sentenceSplittingEnabled = false,
+                    )
+                    val paragraphs = originalItems.filterIsInstance<ReaderItem.Body>().map { it.text }
+                    if (paragraphs.isEmpty()) {
+                        skipped++
+                        onProgress("Capítulo ${index + 1}/${orderedChapters.size}: sem texto (ignorados: $skipped)")
+                        return@forEachIndexed
+                    }
+
+                    val cached = runCatching {
+                        val array = org.json.JSONArray(existing?.translatedParagraphs ?: "[]")
+                        (0 until array.length()).map { array.getString(it) }
+                    }.getOrDefault(emptyList())
+                    val cachedComplete = cached.size == paragraphs.size && cached.all { it.isNotBlank() }
+                    if (cachedComplete && existing?.titleTranslation?.isNotBlank() == true) {
+                        completed++
+                        onProgress("Traduzindo obra: $completed/${orderedChapters.size} capítulos (já em cache)")
+                        return@forEachIndexed
+                    }
+
+                    val translated = if (cachedComplete) cached else {
+                        val results = linkedMapOf<String, String>()
+                        paragraphs.distinct().chunked(20).forEach { batch ->
+                            val responseMap = kotlinx.coroutines.withTimeout(90_000L) {
+                                manualBatchTranslate(batch)
+                            }
+                            batch.forEach { text ->
+                                results[text] = responseMap[text]?.takeIf { it.isNotBlank() } ?: text
+                            }
+                        }
+                        paragraphs.map { results[it] ?: it }
+                    }
+                    val title = existing?.titleTranslation?.takeIf { it.isNotBlank() }
+                        ?: runCatching { manualTitleTranslate(chapter.title, sourceLang, targetLang) }.getOrNull().orEmpty()
+                    withContext(Dispatchers.IO) {
+                        chapterTranslationDao.insertReplace(
+                            ChapterTranslation(
+                                chapterUrl = chapter.url,
+                                sourceLang = sourceLang,
+                                targetLang = targetLang,
+                                translatedParagraphs = org.json.JSONArray(translated).toString(),
+                                titleTranslation = title,
+                            )
+                        )
+                    }
+                    completed++
+                    onProgress("Traduzindo obra: $completed/${orderedChapters.size} capítulos (ignorados: $skipped)")
+                }
+                onProgress("Tradução manual concluída: $completed capítulos processados; $skipped ignorados.")
+            } catch (error: Exception) {
+                Timber.e(error, "Manual book translation failed")
+                onProgress("Falha na tradução manual: ${error.message ?: "erro desconhecido"}")
+            }
+        }
+    }
 
     @Synchronized fun tryLoadInitial(chapterIndex: Int) {
         Timber.d("tryLoadInitial called, chapterIndex=$chapterIndex, stack=${Thread.currentThread().stackTrace[2]}")
