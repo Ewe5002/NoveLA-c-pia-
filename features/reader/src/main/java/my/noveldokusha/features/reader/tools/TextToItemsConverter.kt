@@ -36,11 +36,12 @@ internal suspend fun textToItemsConverter(
             ?: parsedDocument.selectFirst("[name=\"$targetId\"]")
             ?: return@forEach
         val targetClass = target.className().lowercase()
-        val looksLikeFootnote = targetId.contains("fn", true) ||
+        val looksLikeFootnote = !targetId.contains("ref", true) && !targetId.contains("back", true) && (
+            targetId.contains("fn", true) ||
             targetId.contains("footnote", true) ||
             targetId.contains("note", true) ||
             targetClass.contains("footnote") ||
-            targetClass.contains("endnote")
+            targetClass.contains("endnote"))
         if (!looksLikeFootnote) return@forEach
         val noteText = target.text().trim()
         if (noteText.isBlank()) return@forEach
