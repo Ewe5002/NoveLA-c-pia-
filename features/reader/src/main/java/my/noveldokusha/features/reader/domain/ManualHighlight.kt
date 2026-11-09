@@ -10,7 +10,7 @@ internal data class HighlightPosition(
 )
 
 /** Маркер применяется только к абзацам основного текста, не к заголовкам. */
-private fun ReaderItem.isHighlightable(): Boolean = this is ReaderItem.Body
+private fun ReaderItem.isHighlightable(): Boolean = this is ReaderItem.Text
 
 /**
  * Индекс первого подсвечиваемого элемента с [fromIndex] включительно.
