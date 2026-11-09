@@ -574,27 +574,28 @@ internal class ChaptersViewModel @Inject constructor(
                         "bookInfo: url=%s enabled=%s source=%s target=%s scope=%s",
                         bookUrlFlow.value, settings.enabled, settings.source, settings.target, settings.scope
                     )
-                    // Авто-показ перевода метаданных книги ТОЛЬКО при scope == FULL.
-                    // При scope != FULL — не загружаем из БД (ручной результат
-                    // управляется отдельно через manualTranslationActive флаг).
-                    if (settings.target.isBlank() || settings.scope != AppPreferences.TRANSLATION_SCOPE_FULL) {
-                        flowOf(null)
+                    // Описание показываем из кэша при любом scope: его автоматический
+                    // перевод нужен и в STANDARD, даже если заголовки переводятся только в FULL.
+                    if (settings.target.isBlank()) {
+                        flowOf(null to settings.scope)
                     } else {
                         bookTranslationDao.getTranslatedBookFlow(bookUrlFlow.value, settings.target)
-                            .map { rows -> selectBookInfoRow(rows, settings.source) }
+                            .map { rows -> selectBookInfoRow(rows, settings.source) to settings.scope }
                     }
                 }
-                .collectLatest { row ->
+                .collectLatest { (row, scope) ->
                     // Не перезаписываем результат ручного перевода, пока он активен.
                     if (manualTranslationActive) return@collectLatest
-                    translatedTitle.value = row?.titleTranslation?.takeIf { it.isNotBlank() }
+                    translatedTitle.value = if (scope == AppPreferences.TRANSLATION_SCOPE_FULL)
+                        row?.titleTranslation?.takeIf { it.isNotBlank() }
+                    else null
                     translatedDescription.value = row?.descriptionTranslation?.takeIf { it.isNotBlank() }
                 }
         }
 
-        // FULL-scope: автоматически переводим заголовок и описание новеллы при её
-        // открытии. Запускается после загрузки метаданных книги, только если перевод
-        // включён, пара языков полная, scope == FULL и перевода ещё нет в БД.
+        // Автоматически переводим описание новеллы при её открытии во всех scope.
+        // Заголовок дополнительно переводится только в FULL. Результат сохраняется
+        // в BookTranslation и повторно используется из кэша при следующих открытиях.
         viewModelScope.launch {
             snapshotFlow { state.book.value }
                 .filter { it.title.isNotBlank() || it.description.isNotBlank() }
@@ -613,27 +614,28 @@ internal class ChaptersViewModel @Inject constructor(
                     )
                     if (!enabled) return@collect
                     if (sourceLang.isBlank() || targetLang.isBlank()) return@collect
-                    if (scope != AppPreferences.TRANSLATION_SCOPE_FULL) return@collect
                     val existingRow = bookTranslationDao.get(bookUrl, sourceLang, targetLang)
                     if (existingRow?.descriptionTranslation?.isNotBlank() == true) return@collect
+                    if (bookState.description.isBlank()) return@collect
                     if (isTranslatingInfo.value) return@collect
 
                     isTranslatingInfo.value = true
                     try {
+                        // STANDARD traduz somente a descrição; FULL também traduz o título.
                         val translatedTitleText =
-                            existingRow?.titleTranslation?.takeIf { it.isNotBlank() }
-                                ?: if (bookState.title.isNotBlank())
-                                    translationManager.translateTitle(
-                                        bookState.title, sourceLang, targetLang, provider
-                                    ) ?: ""
-                                else ""
+                            if (scope == AppPreferences.TRANSLATION_SCOPE_FULL) {
+                                existingRow?.titleTranslation?.takeIf { it.isNotBlank() }
+                                    ?: if (bookState.title.isNotBlank())
+                                        translationManager.translateTitle(
+                                            bookState.title, sourceLang, targetLang, provider
+                                        ) ?: ""
+                                    else ""
+                            } else ""
                         val translatedDescriptionText =
-                            if (bookState.description.isNotBlank())
-                                translationManager.translateBatch(
-                                    listOf(bookState.description), sourceLang, targetLang,
-                                    systemPromptOverride = null, provider = provider
-                                )[bookState.description] ?: ""
-                            else ""
+                            translationManager.translateBatch(
+                                listOf(bookState.description), sourceLang, targetLang,
+                                systemPromptOverride = null, provider = provider
+                            )[bookState.description] ?: ""
 
                         if (translatedTitleText.isNotBlank() || translatedDescriptionText.isNotBlank()) {
                             bookTranslationDao.insertReplace(
