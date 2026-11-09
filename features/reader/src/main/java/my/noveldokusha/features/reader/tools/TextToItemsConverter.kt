@@ -145,7 +145,9 @@ private fun extractChapterFootnotes(source: String): ParsedChapterContent {
                 idOrClass.contains("endnote") || idOrClass.contains("note") ||
                 target.attr("role").contains("doc-footnote", ignoreCase = true)
             if (!isFootnote) return@forEachIndexed
-            val note = target.text().trim()
+            val noteElement = target.clone()
+            noteElement.select("a").remove()
+            val note = noteElement.text().trim()
             if (note.isBlank()) return@forEachIndexed
             val label = anchor.text().trim().ifBlank { "[${index + 1}]" }
             val token = "__LNV_FOOTNOTE_${tokens.size}__"
