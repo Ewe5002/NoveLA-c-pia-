@@ -330,13 +330,12 @@ class TranslationPluginCascadeTest {
     }
 
     @Test
-    fun `failure - book key disabled does not cancel plugin enabled`() {
+    fun `explicit book opt-out blocks plugin translation`() {
         prefs.setTranslationEnabledForPlugin("lua_demo", true)
-        // Явный false в book-карте (тот же результат даёт setTranslationEnabledForBook(false))
-        // НЕ отменяет включённый плагин — уровни независимы (OR), книга переводится плагином.
+        // Выключение конкретной книги должно иметь приоритет над её плагином.
         prefs.TRANSLATION_BOOK_ENABLED_MAP.value = mapOf("https://lua_demo/book/1" to false)
 
-        assertTrue(prefs.translationEnabledForBook("https://lua_demo/book/1", "lua_demo"))
+        assertFalse(prefs.translationEnabledForBook("https://lua_demo/book/1", "lua_demo"))
     }
 
     // ─── Global OFF + plugin ON (фикс «включил плагин — не работает») ──────
