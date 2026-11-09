@@ -112,10 +112,8 @@ internal class ReaderLiveTranslation(
     private fun resolveNovelPromptAppendMode(): Boolean =
         appPreferences.TRANSLATION_NOVEL_PROMPTS.value[bookUrl]?.appendMode ?: false
 
-    // RAW-уровень диалога: значение переключателя книги БЕЗ каскада плагина/глобала.
-    // Свитч управляет только тем уровнем, который реально редактируется диалогом:
-    // в глобальном режиме — GLOBAL_TRANSLATION_ENABLED, вне — пер-новел карта.
-    // Каскад (плагин/глобал могут переводить) учитывается отдельно в updateTranslatorState.
+    // Переключатель диалога показывает явное значение для этой книги,
+    // а при отсутствии переопределения наследует активную настройку плагина/приложения.
     private fun resolveRawEnable(): Boolean =
         appPreferences.TRANSLATION_BOOK_ENABLED_MAP.value[bookUrl]
             ?: translationSettingsResolver.translationEnabledForBook(bookUrl)
@@ -304,11 +302,8 @@ internal class ReaderLiveTranslation(
             }
         }
         try {
-            // Запись адаптивна к режиму (как в default): в глобальном режиме тумблер
-            // книги управляет глобальным включением GLOBAL_TRANSLATION_ENABLED, вне
-            // глобального режима — пер-новел картой TRANSLATION_BOOK_ENABLED_MAP.
-            // Выключение сбрасывает per-novel к наследованию (ключа нет) — включённый
-            // плагин или глобальная настройка тогда снова могут включить перевод.
+            // Сохраняем явное переопределение для этой книги. Выключение остаётся
+            // выключением даже при включённом глобальном переводе или переводчике расширения.
             appPreferences.setTranslationEnabledForBook(bookUrl, it)
             state.enable.value = it
             // После смены уровня мог измениться активный переводчик (полоска-статус).
