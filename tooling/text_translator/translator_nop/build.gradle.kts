@@ -23,3 +23,7 @@ dependencies {
 
     implementation(libs.timber)
 }
+// Este módulo não possui testes unitários próprios; não falhar por ausência de descoberta.
+tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+    failOnNoDiscoveredTests = false
+}
