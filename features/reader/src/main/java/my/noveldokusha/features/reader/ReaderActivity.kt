@@ -1,5 +1,6 @@
 package my.noveldokusha.features.reader
 
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -237,6 +238,7 @@ class ReaderActivity : BaseActivity() {
                 onMarkerParagraphClick = { item: ReaderItem.Body ->
                     onManualHighlightParagraphClick(item)
                 },
+                onFootnoteClick = { note -> showFootnote(note) },
                 currentTextJustify = { appPreferences.READER_TEXT_JUSTIFY.value },
                 currentTextHyphenation = { appPreferences.READER_TEXT_HYPHENATION.value },
                 currentParagraphIndent = { appPreferences.READER_PARAGRAPH_INDENT.value },
@@ -252,6 +254,21 @@ class ReaderActivity : BaseActivity() {
                 currentMarginBottom = { appPreferences.READER_MARGIN_BOTTOM.value },
             )
         }
+    }
+
+    private fun showFootnote(note: String) {
+        val list = viewBind.listView
+        val savedPosition = list.firstVisiblePosition
+        val savedOffset = list.getChildAt(0)?.top ?: 0
+        AlertDialog.Builder(this)
+            .setTitle("Nota de rodapé")
+            .setMessage(note)
+            .setCancelable(false)
+            .setPositiveButton("Voltar à leitura") { dialog, _ ->
+                dialog.dismiss()
+                list.post { list.setSelectionFromTop(savedPosition, savedOffset) }
+            }
+            .show()
     }
 
     private fun onManualHighlightParagraphClick(item: ReaderItem.Body) {
