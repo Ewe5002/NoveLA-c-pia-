@@ -13,7 +13,6 @@ import timber.log.Timber
 private val IMG_TAG_REGEX = Regex("<img\\b", RegexOption.IGNORE_CASE)
 private val COLLAPSE_SPACES = Regex("[ ]+")
 private val PARAGRAPH_BREAK = Regex("\\n\\s*\\n")
-private val FOOTNOTE_MARKER = Regex("⟦LNFOOTNOTE:([^⟧]+)⟧")
 
 internal suspend fun textToItemsConverter(
     chapterUrl: String,
@@ -30,7 +29,7 @@ internal suspend fun textToItemsConverter(
     var itemPosition = chapterItemPositionDisplacement
     val parsedDocument = Jsoup.parseBodyFragment(text)
     val footnotes = linkedMapOf<String, String>()
-    val footnoteAnchors = parsedDocument.select("a[href^=#]")
+    val footnoteAnchors = parsedDocument.select("a[href]").filter { it.attr("href").startsWith("#") }
     footnoteAnchors.forEach { anchor ->
         val targetId = anchor.attr("href").removePrefix("#")
         val target = parsedDocument.getElementById(targetId)
