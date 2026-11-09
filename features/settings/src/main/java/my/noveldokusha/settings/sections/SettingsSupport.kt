@@ -3,7 +3,6 @@ package my.noveldokusha.settings.sections
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BugReport
-import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -18,21 +17,12 @@ import my.noveldokusha.settings.R
 @Composable
 internal fun SettingsSupport(
     onExportLogs: () -> Unit,
-    onCustomCodeClick: () -> Unit = {},
 ) {
     Text(
         text = stringResource(R.string.support),
         style = MaterialTheme.typography.titleMedium,
         modifier = Modifier.textPadding(),
         color = colorAccent()
-    )
-    SlimListItem(
-        headlineContent = { Text("JavaScript e CSS") },
-        supportingContent = { Text("Personalizar capítulos com códigos próprios") },
-        leadingContent = {
-            Icon(Icons.Outlined.Code, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        },
-        modifier = Modifier.clickable { onCustomCodeClick() }
     )
     SlimListItem(
         headlineContent = {
