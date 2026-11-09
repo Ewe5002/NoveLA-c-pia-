@@ -7,11 +7,13 @@ import my.noveldokusha.core.utils.STRIP_HTML_TAGS
 import my.noveldokusha.features.reader.domain.ImgEntry
 import my.noveldokusha.features.reader.domain.ReaderItem
 import org.jsoup.Jsoup
+import org.jsoup.nodes.TextNode
 import timber.log.Timber
 
 private val IMG_TAG_REGEX = Regex("<img\\b", RegexOption.IGNORE_CASE)
 private val COLLAPSE_SPACES = Regex("[ ]+")
 private val PARAGRAPH_BREAK = Regex("\\n\\s*\\n")
+private val FOOTNOTE_MARKER = Regex("⟦LNFOOTNOTE:([^⟧]+)⟧")
 
 internal suspend fun textToItemsConverter(
     chapterUrl: String,
@@ -26,7 +28,32 @@ internal suspend fun textToItemsConverter(
 
     val items = mutableListOf<ReaderItem>()
     var itemPosition = chapterItemPositionDisplacement
-    var remaining = text
+    val parsedDocument = Jsoup.parseBodyFragment(text)
+    val footnotes = linkedMapOf<String, String>()
+    val footnoteAnchors = parsedDocument.select("a[href^=#]")
+    footnoteAnchors.forEach { anchor ->
+        val targetId = anchor.attr("href").removePrefix("#")
+        val target = parsedDocument.getElementById(targetId)
+            ?: parsedDocument.selectFirst("[name=\"$targetId\"]")
+            ?: return@forEach
+        val targetClass = target.className().lowercase()
+        val looksLikeFootnote = targetId.contains("fn", true) ||
+            targetId.contains("footnote", true) ||
+            targetId.contains("note", true) ||
+            targetClass.contains("footnote") ||
+            targetClass.contains("endnote")
+        if (!looksLikeFootnote) return@forEach
+        val noteText = target.text().trim()
+        if (noteText.isBlank()) return@forEach
+        footnotes[targetId] = noteText
+        val label = anchor.text().trim().ifBlank { (footnotes.size).toString() }
+        anchor.replaceWith(TextNode("⟦LNFOOTNOTE:$targetId|$label⟧"))
+    }
+    footnotes.keys.forEach { id ->
+        parsedDocument.getElementById(id)?.remove()
+        parsedDocument.select("[name=\"$id\"]").remove()
+    }
+    var remaining = parsedDocument.body().html()
     var imgMatchCount = 0
 
     while (true) {
@@ -41,7 +68,8 @@ internal suspend fun textToItemsConverter(
                 chapterIndex = chapterIndex,
                 startPosition = itemPosition,
                 userRegexRules = userRegexRules,
-                sentenceSplittingEnabled = sentenceSplittingEnabled
+                sentenceSplittingEnabled = sentenceSplittingEnabled,
+                footnotes = footnotes
             )
             items.addAll(bodyItems)
             itemPosition += bodyItems.size
@@ -75,7 +103,8 @@ internal suspend fun textToItemsConverter(
             chapterIndex = chapterIndex,
             startPosition = itemPosition,
             userRegexRules = userRegexRules,
-            sentenceSplittingEnabled = sentenceSplittingEnabled
+            sentenceSplittingEnabled = sentenceSplittingEnabled,
+            footnotes = footnotes
         )
         items.addAll(bodyItems)
     }
@@ -129,7 +158,8 @@ private fun buildBodyItems(
     chapterIndex: Int,
     startPosition: Int,
     userRegexRules: List<RegexRule>,
-    sentenceSplittingEnabled: Boolean = false
+    sentenceSplittingEnabled: Boolean = false,
+    footnotes: Map<String, String> = emptyMap()
 ): List<ReaderItem.Body> {
     val cleanText = text
         .replace(STRIP_HTML_TAGS, "")
@@ -151,7 +181,8 @@ private fun buildBodyItems(
             chapterIndex = chapterIndex,
             chapterItemPosition = startPosition + i,
             text = trimmed,
-            location = ReaderItem.Location.MIDDLE
+            location = ReaderItem.Location.MIDDLE,
+            footnotes = footnotes
         )
     }
 }
