@@ -17,6 +17,9 @@ import android.text.Spanned
 import android.text.style.LeadingMarginSpan
 import android.text.style.RelativeSizeSpan
 import android.text.style.ReplacementSpan
+import android.text.style.ClickableSpan
+import android.text.method.LinkMovementMethod
+import android.text.TextPaint
 import android.text.style.StyleSpan
 import android.view.MotionEvent
 import android.view.View
@@ -90,6 +93,7 @@ internal class ReaderItemAdapter(
     private val currentManualHighlightOpacity: () -> Float = { 0.45f },
     private val currentMarkerActive: () -> Boolean = { false },
     private val onMarkerParagraphClick: (ReaderItem.Body) -> Unit = {},
+    private val onFootnoteClick: (String) -> Unit = {},
 ) : ArrayAdapter<ReaderItem>(ctx, 0, list) {
     private val appFileResolver = AppFileResolver(ctx)
     override fun getCount() = super.getCount() + 2
@@ -253,6 +257,7 @@ internal class ReaderItemAdapter(
             bind.bodyTranslated.textSize = currentFontSize()
             applyBodyFormatting(bind.bodyTranslated)
             bind.bodyTranslated.updateTextSelectability(paragraphClick)
+            if (primaryText == item.text) applyFootnoteLinks(bind.bodyTranslated, item)
             bind.bodyTranslated.setLineSpacing(0f, currentLineHeight())
             bind.bodyTranslated.letterSpacing = currentLetterSpacing()
             applyTextColor(bind.bodyTranslated, currentTextColor())
@@ -261,6 +266,7 @@ internal class ReaderItemAdapter(
             bind.bodyOriginal.textSize = currentFontSize() * 0.85f
             applyBodyFormatting(bind.bodyOriginal)
             bind.bodyOriginal.updateTextSelectability(paragraphClick)
+            if (secondaryText == item.text) applyFootnoteLinks(bind.bodyOriginal, item)
             bind.bodyOriginal.setLineSpacing(0f, currentLineHeight())
             bind.bodyOriginal.letterSpacing = currentLetterSpacing()
             applyTextColor(bind.bodyOriginal, currentTextColor())
@@ -275,7 +281,8 @@ internal class ReaderItemAdapter(
             bind.bodyTranslated.text = displayText
             bind.bodyTranslated.textSize = currentFontSize()
             applyBodyFormatting(bind.bodyTranslated)
-            bind.bodyTranslated.updateTextSelectability()
+            bind.bodyTranslated.updateTextSelectability(paragraphClick)
+            if (item.textToDisplay == item.text) applyFootnoteLinks(bind.bodyTranslated, item)
             bind.bodyTranslated.setLineSpacing(0f, currentLineHeight())
             bind.bodyTranslated.letterSpacing = currentLetterSpacing()
             applyTextColor(bind.bodyTranslated, currentTextColor())
@@ -303,6 +310,29 @@ internal class ReaderItemAdapter(
             else -> run {}
         }
         return bind.root
+    }
+
+    private fun applyFootnoteLinks(textView: TextView, item: ReaderItem.Body) {
+        if (item.footnotes.isEmpty()) {
+            textView.movementMethod = null
+            return
+        }
+        val linked = SpannableString(item.text)
+        item.footnotes.forEach { note ->
+            if (note.start >= 0 && note.end <= item.text.length && note.start < note.end) {
+                linked.setSpan(object : ClickableSpan() {
+                    override fun onClick(widget: View) { onFootnoteClick(note.content) }
+                    override fun updateDrawState(ds: TextPaint) {
+                        ds.color = textView.currentTextColor
+                        ds.isUnderlineText = false
+                        ds.isFakeBoldText = true
+                    }
+                }, note.start, note.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+        }
+        textView.text = linked
+        textView.movementMethod = LinkMovementMethod.getInstance()
+        textView.highlightColor = android.graphics.Color.TRANSPARENT
     }
 
     private fun viewImage(item: ReaderItem.Image, convertView: View?, parent: ViewGroup): View {
