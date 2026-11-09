@@ -75,6 +75,6 @@ object AppLanguageProvider {
 
     fun fromLocale(locale: Locale): AppLanguage {
         return supportedLanguages.find { it.locale.language == locale.language }
-            ?: supportedLanguages.first()
+            ?: AppLanguage.PORTUGUESE
     }
 }
