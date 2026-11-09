@@ -150,7 +150,19 @@ internal class ReaderSession(
         chapterTranslationDao = chapterTranslationDao,
         regexRulesProvider = { appPreferences.effectiveRegexRules(bookUrl) },
         sentenceSplittingEnabledProvider = { appPreferences.READER_SENTENCE_SPLITTING.value },
-    )
+        manualTranslationLanguagePair = readerLiveTranslation::manualTranslationLanguagePair,
+        manualBatchTranslate = readerLiveTranslation::translateBatchManually,
+        manualTitleTranslate = { title, source, target ->
+            translationManager.translateTitle(title, source, target)
+        },
+    ).also {
+        readerLiveTranslation.state.onManualTranslateBook = { onProgress ->
+            it.translateBookManually { status ->
+                readerLiveTranslation.state.manualTranslationStatus.value = status
+                onProgress(status)
+            }
+        }
+    }
 
     val items = readerChaptersLoader.getItems()
 
