@@ -193,7 +193,7 @@ private fun buildBodyItems(
                 val found = visibleText.indexOf(token, from)
                 if (found < 0) break
                 visibleText = visibleText.replaceRange(found, found + token.length, label)
-                references.add(ReaderItem.FootnoteReference(found, found + label.length, note))
+                references.add(ReaderItem.FootnoteReference(found, found + label.length, note, label))
                 from = found + label.length
             }
         }
